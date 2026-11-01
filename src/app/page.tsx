@@ -507,6 +507,21 @@ export default function Home() {
     });
   };
 
+  const handleUpdateOpeningCash = async (newOpeningCash: number) => {
+    const shift = await db.shifts.get('shift-current');
+    if (shift) {
+      const prevExpected = shift.expectedCash !== undefined ? shift.expectedCash : shift.openingCash;
+      const salesDuringShift = prevExpected - shift.openingCash;
+      const updated = {
+        ...shift,
+        openingCash: newOpeningCash,
+        expectedCash: newOpeningCash + salesDuringShift
+      };
+      await db.shifts.put(updated);
+      await syncManager.queueMutation('shifts', 'UPDATE', updated);
+    }
+  };
+
   const handleClockOut = async (closingCash: number, notes: string) => {
     if (currentShift) {
       await db.shifts.update(currentShift.id, {
@@ -682,6 +697,7 @@ export default function Home() {
               onAddEmployee={handleAddEmployee}
               onClockIn={handleClockIn}
               onClockOut={handleClockOut}
+              onUpdateOpeningCash={handleUpdateOpeningCash}
             />
           )}
 

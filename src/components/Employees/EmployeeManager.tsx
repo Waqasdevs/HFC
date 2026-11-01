@@ -11,7 +11,10 @@ import {
   CreditCard, 
   CheckCircle2,
   ArrowRightLeft,
-  DollarSign
+  DollarSign,
+  Pencil,
+  Check,
+  X
 } from 'lucide-react';
 import { sound } from '@/lib/sound';
 
@@ -23,6 +26,7 @@ interface EmployeeManagerProps {
   onAddEmployee: (emp: Omit<Employee, 'id'>) => void;
   onClockIn: (employeeId: string, employeeName: string, role: Employee['role'], openingCash: number) => void;
   onClockOut: (closingCash: number, notes: string) => void;
+  onUpdateOpeningCash: (newOpeningCash: number) => void;
 }
 
 export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
@@ -33,10 +37,13 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   onAddEmployee,
   onClockIn,
   onClockOut,
+  onUpdateOpeningCash,
 }) => {
   const [showClockOutModal, setShowClockOutModal] = useState(false);
   const [actualCashInput, setActualCashInput] = useState<number>(0);
   const [shiftNotes, setShiftNotes] = useState('');
+  const [isEditingFloat, setIsEditingFloat] = useState(false);
+  const [editFloatValue, setEditFloatValue] = useState<string>((currentShift?.openingCash || 5000).toString());
 
   // The 3 Brothers list
   const brothersList = employees.length > 0 ? employees : [
@@ -46,6 +53,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   ];
 
   // Register calculations for current shift
+  const openingCash = currentShift?.openingCash !== undefined ? currentShift.openingCash : 5000;
   const cashSales = orders
     .filter(o => o.paymentMethod === 'cash' && o.status !== 'cancelled' && o.paymentStatus === 'paid')
     .reduce((sum, o) => sum + (o.total || 0), 0);
@@ -54,8 +62,14 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
     .filter(o => (o.paymentMethod === 'card' || o.paymentMethod === 'online_transfer') && o.status !== 'cancelled' && o.paymentStatus === 'paid')
     .reduce((sum, o) => sum + (o.total || 0), 0);
 
-  const openingCash = currentShift?.openingCash || 5000;
   const expectedCashDrawer = openingCash + cashSales;
+
+  const handleSaveFloat = () => {
+    const val = Math.max(0, Number(editFloatValue) || 0);
+    sound.playSuccess();
+    onUpdateOpeningCash(val);
+    setIsEditingFloat(false);
+  };
 
   const handleConfirmClockOut = () => {
     sound.playSuccess();
@@ -119,11 +133,63 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
 
         {/* Financial Drawer Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-black/5 dark:border-white/5">
-            <span className="text-[11px] font-bold text-neutral-400 uppercase">Opening Cash Float</span>
-            <div className="text-lg font-black text-neutral-900 dark:text-neutral-100 mt-1">
-              {currency} {openingCash.toLocaleString()}
+          {/* 1. Opening Cash Float (Editable) */}
+          <div className="p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-black/5 dark:border-white/5 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-neutral-400 uppercase">Opening Cash Float</span>
+              {!isEditingFloat && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playTap();
+                    setEditFloatValue(openingCash.toString());
+                    setIsEditingFloat(true);
+                  }}
+                  className="p-1 rounded-lg text-neutral-400 hover:text-apple-blue hover:bg-apple-blue/10 transition-colors flex items-center gap-1 text-[11px] font-bold"
+                  title="Click to edit opening cash float"
+                >
+                  <Pencil className="w-3 h-3" />
+                  <span>Edit</span>
+                </button>
+              )}
             </div>
+
+            {isEditingFloat ? (
+              <div className="flex items-center gap-1.5 mt-2">
+                <span className="text-xs font-bold text-neutral-400">{currency}</span>
+                <input
+                  type="number"
+                  value={editFloatValue}
+                  onChange={(e) => setEditFloatValue(e.target.value)}
+                  className="w-full px-2 py-1 rounded-lg border border-apple-blue font-black text-sm bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-mono"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveFloat();
+                    if (e.key === 'Escape') setIsEditingFloat(false);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveFloat}
+                  className="p-1.5 rounded-lg bg-apple-green text-white hover:bg-apple-green-hover transition-colors shrink-0"
+                  title="Save Float"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingFloat(false)}
+                  className="p-1.5 rounded-lg bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 transition-colors shrink-0"
+                  title="Cancel"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="text-lg font-black text-neutral-900 dark:text-neutral-100 mt-1">
+                {currency} {openingCash.toLocaleString()}
+              </div>
+            )}
           </div>
 
           <div className="p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-black/5 dark:border-white/5">
