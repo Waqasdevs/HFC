@@ -29,17 +29,17 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
   onOpenCatalog,
 }) => {
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none select-none">
+    <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none select-none w-full min-w-0 flex-nowrap">
       <button
         onClick={() => onSelectCategory(null)}
-        className={`apple-button px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+        className={`apple-button shrink-0 px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all shadow-sm ${
           selectedCategoryId === null
-            ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-apple-sm'
-            : 'bg-white/80 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-300 border border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-neutral-700'
+            ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-apple-sm ring-1 ring-neutral-900/10'
+            : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-black/5 dark:border-white/5 hover:bg-neutral-50 dark:hover:bg-neutral-700'
         }`}
       >
-        <Grid className="w-3.5 h-3.5 mr-2" />
-        All Items
+        <Grid className="w-3.5 h-3.5 mr-2 shrink-0" />
+        <span>All Items</span>
       </button>
 
       {categories.map((cat) => {
@@ -49,27 +49,30 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
           <button
             key={cat.id}
             onClick={() => onSelectCategory(cat.id)}
-            className={`apple-button px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`apple-button shrink-0 px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all shadow-sm ${
               isSelected
-                ? 'bg-apple-blue text-white shadow-apple-sm'
-                : 'bg-white/80 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-300 border border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-neutral-700'
+                ? 'bg-apple-blue text-white shadow-apple-sm ring-1 ring-apple-blue/20'
+                : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-black/5 dark:border-white/5 hover:bg-neutral-50 dark:hover:bg-neutral-700'
             }`}
           >
-            <Icon className="w-3.5 h-3.5 mr-2" />
-            {cat.name}
+            <Icon className="w-3.5 h-3.5 mr-2 shrink-0" />
+            <span>{cat.name}</span>
           </button>
         );
       })}
 
       {onOpenCatalog && (
-        <button
-          onClick={onOpenCatalog}
-          className="apple-button px-3.5 py-2 rounded-2xl text-xs font-bold text-apple-blue bg-apple-blue/10 hover:bg-apple-blue/20 transition-all whitespace-nowrap ml-auto"
-          title="Add or Edit Menu Items and Categories"
-        >
-          <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-          Edit Catalog
-        </button>
+        <>
+          <div className="h-6 w-px bg-neutral-300 dark:bg-neutral-700 shrink-0 mx-1" />
+          <button
+            onClick={onOpenCatalog}
+            className="apple-button shrink-0 px-3.5 py-2 rounded-2xl text-xs font-bold text-apple-blue bg-apple-blue/10 hover:bg-apple-blue/20 transition-all whitespace-nowrap"
+            title="Add or Edit Menu Items and Categories"
+          >
+            <Edit3 className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+            <span>Edit Catalog</span>
+          </button>
+        </>
       )}
     </div>
   );

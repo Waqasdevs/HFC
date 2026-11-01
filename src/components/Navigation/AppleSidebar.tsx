@@ -64,7 +64,7 @@ export const AppleSidebar: React.FC<AppleSidebarProps> = ({
   ];
 
   return (
-    <aside className="w-64 h-screen flex flex-col justify-between border-r border-black/5 dark:border-white/10 bg-white/70 dark:bg-[#18181b]/70 backdrop-blur-2xl select-none z-30 transition-all">
+    <aside className="w-56 lg:w-60 xl:w-64 h-screen flex flex-col justify-between border-r border-black/5 dark:border-white/10 bg-white/70 dark:bg-[#18181b]/70 backdrop-blur-2xl select-none z-30 transition-all shrink-0">
       {/* Brand Header */}
       <div className="p-5 pb-3">
         <div className="flex items-center gap-3">

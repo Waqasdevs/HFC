@@ -131,7 +131,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   };
 
   return (
-    <div className="w-96 h-screen flex flex-col justify-between border-l border-black/5 dark:border-white/10 bg-white/70 dark:bg-[#18181b]/70 backdrop-blur-2xl select-none z-20">
+    <div className="w-80 lg:w-84 xl:w-96 h-screen flex flex-col justify-between border-l border-black/5 dark:border-white/10 bg-white/70 dark:bg-[#18181b]/70 backdrop-blur-2xl select-none z-20 shrink-0">
       {/* Header & Order Type Segmented Control */}
       <div className="p-4 border-b border-black/5 dark:border-white/10 space-y-3">
         <div className="flex items-center justify-between">

@@ -73,23 +73,23 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
   };
 
   return (
-    <header className="h-16 w-full flex items-center justify-between px-6 border-b border-black/5 dark:border-white/10 bg-white/70 dark:bg-[#18181b]/70 backdrop-blur-2xl z-20 select-none">
+    <header className="h-16 w-full flex items-center justify-between px-4 lg:px-6 border-b border-black/5 dark:border-white/10 bg-white/70 dark:bg-[#18181b]/70 backdrop-blur-2xl z-20 select-none min-w-0">
       {/* Left Search / Filter */}
-      <div className="flex items-center gap-4 flex-1 max-w-md">
-        <div className="relative w-full">
+      <div className="flex items-center gap-3 flex-1 max-w-xs sm:max-w-sm lg:max-w-md min-w-0">
+        <div className="relative w-full min-w-0">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search burgers, broast, drinks (⌘K)..."
-            className="w-full pl-9 pr-4 py-2 bg-neutral-200/50 dark:bg-neutral-800/50 rounded-xl text-sm placeholder:text-neutral-400 dark:placeholder:text-neutral-500 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-apple-blue/50 transition-all"
+            placeholder="Search burgers, broast (⌘K)..."
+            className="w-full pl-9 pr-3 py-2 bg-neutral-200/50 dark:bg-neutral-800/50 rounded-xl text-sm placeholder:text-neutral-400 dark:placeholder:text-neutral-500 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-apple-blue/50 transition-all truncate"
           />
         </div>
       </div>
 
       {/* Center Apple-Style Sync Capsule */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0 px-2">
         <div 
           onClick={() => {
             if (!syncStatus.hasCloudConfig && onOpenSettings) {
