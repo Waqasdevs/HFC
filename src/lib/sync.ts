@@ -80,6 +80,8 @@ class SyncManager {
   private checkInterval: NodeJS.Timeout | null = null;
   private supabaseClient: SupabaseClient | null = null;
   private realtimeChannel: RealtimeChannel | null = null;
+  private activeUrl: string | null = null;
+  private activeKey: string | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -108,8 +110,26 @@ class SyncManager {
   public async getCredentials(): Promise<{ url: string; key: string } | null> {
     try {
       const settings = await db.settings.get('default');
-      const rawUrl = settings?.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-      const rawKey = settings?.supabaseAnonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+      const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const envKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+
+      let rawUrl = settings?.supabaseUrl || envUrl;
+      let rawKey = settings?.supabaseAnonKey?.trim() || envKey;
+
+      // Auto-heal: If local settings contain the opaque 'sb_publishable_' key and env has the valid JWT anon key, auto-migrate!
+      if (rawKey.startsWith('sb_publishable_') && envKey.startsWith('eyJ')) {
+        rawKey = envKey;
+        await db.settings.update('default', { supabaseAnonKey: envKey }).catch(() => {});
+      } else if (!rawKey && envKey) {
+        rawKey = envKey;
+        await db.settings.update('default', { supabaseAnonKey: envKey }).catch(() => {});
+      }
+
+      if (!rawUrl && envUrl) {
+        rawUrl = envUrl;
+        await db.settings.update('default', { supabaseUrl: envUrl }).catch(() => {});
+      }
+
       const url = cleanSupabaseUrl(rawUrl);
       const key = rawKey.trim();
       if (url && key) return { url, key };
@@ -122,10 +142,15 @@ class SyncManager {
   }
 
   public async getClient(): Promise<SupabaseClient | null> {
-    if (this.supabaseClient) return this.supabaseClient;
     const creds = await this.getCredentials();
     if (!creds?.url || !creds?.key) return null;
-    this.supabaseClient = createClient(creds.url, creds.key);
+    
+    // Invalidate client if credentials changed
+    if (!this.supabaseClient || this.activeUrl !== creds.url || this.activeKey !== creds.key) {
+      this.activeUrl = creds.url;
+      this.activeKey = creds.key;
+      this.supabaseClient = createClient(creds.url, creds.key);
+    }
     return this.supabaseClient;
   }
 

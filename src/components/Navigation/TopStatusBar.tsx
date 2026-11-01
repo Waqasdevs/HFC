@@ -95,14 +95,14 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
     };
   }, []);
 
-  const handleManualSync = async () => {
+  const handleManualSync = async (force: boolean = false) => {
     if (soundEnabled) sound.playTap();
     if (!syncStatus.hasCloudConfig) {
       if (onOpenSettings) onOpenSettings();
       return;
     }
 
-    if (syncStatus.cloudSyncError) {
+    if (!force && syncStatus.cloudSyncError) {
       setShowErrorModal(syncStatus.cloudSyncError);
       return;
     }
@@ -112,6 +112,7 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
     if (result.success) {
       if (soundEnabled) sound.playSuccess();
       setSyncFeedback('✓ Synced with Supabase');
+      setShowErrorModal(null);
       setTimeout(() => setSyncFeedback(null), 3000);
     } else {
       if (soundEnabled) sound.playAlert();
@@ -420,8 +421,7 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
                   <button
                     type="button"
                     onClick={async () => {
-                      setShowErrorModal(null);
-                      await handleManualSync();
+                      await handleManualSync(true);
                     }}
                     className="apple-button py-2.5 px-4 rounded-xl bg-apple-blue hover:bg-apple-blue-hover text-white font-bold text-xs shadow-apple-sm transition-all"
                   >

@@ -21,6 +21,7 @@ import {
 import { sound } from '@/lib/sound';
 import { cleanSupabaseUrl } from '@/lib/sync';
 import { SUPABASE_SCHEMA_SQL } from '@/lib/schemaSql';
+import { createClient } from '@supabase/supabase-js';
 
 interface RestaurantSettingsModalProps {
   settings: RestaurantSettings;
@@ -33,25 +34,47 @@ export const RestaurantSettingsModal: React.FC<RestaurantSettingsModalProps> = (
   onSaveSettings,
   onClose,
 }) => {
-  const [formData, setFormData] = useState<RestaurantSettings>(() => ({
-    ...settings,
-    supabaseUrl: settings.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    supabaseAnonKey: settings.supabaseAnonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-  }));
+  const [formData, setFormData] = useState<RestaurantSettings>(() => {
+    const envKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+    const currentKey = settings.supabaseAnonKey?.trim() || '';
+    const initialKey = (currentKey.startsWith('sb_publishable_') && envKey.startsWith('eyJ'))
+      ? envKey
+      : (currentKey || envKey);
+
+    const envUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+    const currentUrl = settings.supabaseUrl?.trim() || '';
+    const initialUrl = cleanSupabaseUrl(currentUrl || envUrl);
+
+    return {
+      ...settings,
+      supabaseUrl: initialUrl,
+      supabaseAnonKey: initialKey,
+    };
+  });
 
   useEffect(() => {
+    const envKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+    const currentKey = settings.supabaseAnonKey?.trim() || '';
+    const initialKey = (currentKey.startsWith('sb_publishable_') && envKey.startsWith('eyJ'))
+      ? envKey
+      : (currentKey || envKey);
+
+    const envUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+    const currentUrl = settings.supabaseUrl?.trim() || '';
+    const initialUrl = cleanSupabaseUrl(currentUrl || envUrl);
+
     setFormData(prev => ({
       ...settings,
-      supabaseUrl: settings.supabaseUrl || prev.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      supabaseAnonKey: settings.supabaseAnonKey || prev.supabaseAnonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      supabaseUrl: initialUrl || prev.supabaseUrl,
+      supabaseAnonKey: initialKey || prev.supabaseAnonKey,
     }));
   }, [settings]);
+
   const [isSaved, setIsSaved] = useState(false);
   const [isTestingSupabase, setIsTestingSupabase] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [showSetupGuide, setShowSetupGuide] = useState(false);
   const [showAdvancedCloud, setShowAdvancedCloud] = useState(() => {
-    // If credentials are empty, show inputs. If already configured, keep clean and collapsed.
     return !(settings.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL);
   });
   const [copiedSql, setCopiedSql] = useState(false);
@@ -61,10 +84,32 @@ export const RestaurantSettingsModal: React.FC<RestaurantSettingsModalProps> = (
     setIsSaved(false);
   };
 
+  const handleApplyVercelCredentials = () => {
+    sound.playTap();
+    const envUrl = cleanSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+    const envKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+    if (envUrl || envKey) {
+      setFormData(prev => ({
+        ...prev,
+        supabaseUrl: envUrl || prev.supabaseUrl,
+        supabaseAnonKey: envKey || prev.supabaseAnonKey,
+      }));
+      setTestResult('Loaded URL and Anon Key from Vercel config! Click "Save Settings" or "Test Cloud Connection".');
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sound.playSuccess();
-    onSaveSettings(formData);
+    const cleanUrl = cleanSupabaseUrl(formData.supabaseUrl);
+    const cleanKey = (formData.supabaseAnonKey || '').trim();
+    const cleaned = {
+      ...formData,
+      supabaseUrl: cleanUrl,
+      supabaseAnonKey: cleanKey,
+    };
+    setFormData(cleaned);
+    onSaveSettings(cleaned);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
   };
@@ -88,23 +133,25 @@ export const RestaurantSettingsModal: React.FC<RestaurantSettingsModalProps> = (
       return;
     }
 
+    if (cleanKey.startsWith('sb_publishable_')) {
+      sound.playAlert();
+      setTestResult('Key format error: You entered an "sb_publishable_" key. Supabase database access requires the "anon public" key starting with "eyJ..." from the "Legacy anon, service_role API keys" tab.');
+      return;
+    }
+
     setIsTestingSupabase(true);
     setTestResult(null);
 
     try {
-      const res = await fetch(`${cleanUrl}/rest/v1/`, {
-        headers: {
-          apikey: cleanKey,
-          Authorization: `Bearer ${cleanKey}`
-        }
-      });
+      const client = createClient(cleanUrl, cleanKey);
+      const { data, error } = await client.from('settings').select('id').limit(1);
 
-      if (res.ok || res.status === 200 || res.status === 404) {
-        sound.playSuccess();
-        setTestResult('✓ Cloud Database Connected! Realtime Multi-Device Sync is active.');
-      } else {
+      if (error) {
         sound.playAlert();
-        setTestResult(`Connection returned HTTP ${res.status}. Verify credentials.`);
+        setTestResult(`Supabase response: ${error.message} (${error.hint || error.details || 'Check permissions or schema'})`);
+      } else {
+        sound.playSuccess();
+        setTestResult('✓ Cloud Database Connected! Successfully verified communication with Supabase.');
       }
     } catch (err: any) {
       sound.playAlert();
@@ -371,30 +418,75 @@ export const RestaurantSettingsModal: React.FC<RestaurantSettingsModalProps> = (
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <label className="font-semibold text-neutral-700 dark:text-neutral-300">Supabase Project URL</label>
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-neutral-700 dark:text-neutral-300">Supabase Project URL</label>
+                    {formData.supabaseUrl && formData.supabaseUrl.includes('/rest/v1') && (
+                      <span className="text-[10px] text-amber-500 font-semibold">auto-cleans /rest/v1/</span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={formData.supabaseUrl || ''}
-                    onChange={(e) => handleChange('supabaseUrl', e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value.trim();
+                      handleChange('supabaseUrl', val);
+                    }}
+                    onBlur={(e) => {
+                      const cleaned = cleanSupabaseUrl(e.target.value);
+                      if (cleaned !== e.target.value) {
+                        handleChange('supabaseUrl', cleaned);
+                      }
+                    }}
                     placeholder="https://your-project.supabase.co"
                     className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 mt-1 font-mono text-[11px]"
                   />
+                  <p className="text-[10px] text-neutral-400 mt-1">
+                    Project root URL (e.g. <code>https://djykwsqtlvnnwdoftjpk.supabase.co</code>). Do not include <code>/rest/v1/</code>.
+                  </p>
                 </div>
 
                 <div>
-                  <label className="font-semibold text-neutral-700 dark:text-neutral-300">Supabase Anon Public Key</label>
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-neutral-700 dark:text-neutral-300">Supabase Anon Public Key</label>
+                    {formData.supabaseAnonKey?.startsWith('eyJ') && (
+                      <span className="text-[10px] text-apple-green font-bold flex items-center gap-0.5">
+                        <CheckCircle2 className="w-3 h-3" /> Valid JWT
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="password"
                     value={formData.supabaseAnonKey || ''}
-                    onChange={(e) => handleChange('supabaseAnonKey', e.target.value)}
-                    placeholder="eyJhbGciOi... or sb_publishable_..."
+                    onChange={(e) => handleChange('supabaseAnonKey', e.target.value.trim())}
+                    placeholder="eyJhbGciOi..."
                     className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 mt-1 font-mono text-[11px]"
                   />
+                  {formData.supabaseAnonKey?.startsWith('sb_publishable_') ? (
+                    <p className="text-[10px] text-apple-red font-medium mt-1">
+                      ⚠️ Warning: You entered a <code>sb_publishable_</code> key. Supabase PostgREST requires the legacy <code>anon</code> JWT key starting with <code>eyJ...</code> from Project Settings &rarr; API Keys.
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-neutral-400 mt-1">
+                      Legacy <code>anon public</code> JWT key starting with <code>eyJ...</code>
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="flex justify-end text-[11px] text-neutral-400">
-                Database Provider: <strong>Supabase (PostgreSQL Free Tier)</strong>
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                {Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ? (
+                  <button
+                    type="button"
+                    onClick={handleApplyVercelCredentials}
+                    className="apple-button px-3 py-1.5 rounded-xl bg-apple-blue/10 hover:bg-apple-blue/20 text-apple-blue font-bold text-xs flex items-center gap-1.5 transition-all"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Load from Vercel Config</span>
+                  </button>
+                ) : <div />}
+                <div className="text-[11px] text-neutral-400">
+                  Database Provider: <strong>Supabase (PostgreSQL Free Tier)</strong>
+                </div>
               </div>
             </div>
           )}
