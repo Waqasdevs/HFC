@@ -28,7 +28,7 @@ const tableNameMap: Record<string, string> = {
 // Helper to sanitize and clean Supabase URL (strips accidental /rest/v1 or trailing slashes)
 export function cleanSupabaseUrl(url?: string): string {
   if (!url) return '';
-  return url.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+  return url.trim().replace(/\/+$/, '').replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 }
 
 // Helper to convert camelCase object keys to snake_case for PostgreSQL
@@ -37,9 +37,26 @@ export function toSnakeCase(obj: Record<string, any>): Record<string, any> {
   const result: Record<string, any> = {};
   for (const key of Object.keys(obj)) {
     const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-    result[snakeKey] = obj[key];
+    result[snakeKey] = obj[key] === undefined ? null : obj[key];
   }
   return result;
+}
+
+// Helper to sanitize entity payload before PostgreSQL upsert
+export function sanitizeEntityData(entity: string, data: Record<string, any>): Record<string, any> {
+  const snake = toSnakeCase(data);
+  if (entity === 'settings') {
+    delete snake.supabase_url;
+    delete snake.supabase_anon_key;
+  }
+  if (entity === 'orders') {
+    if (snake.table_number === undefined) snake.table_number = null;
+    if (snake.customer === undefined) snake.customer = null;
+    if (snake.notes === undefined) snake.notes = null;
+    if (snake.assigned_rider_id === undefined) snake.assigned_rider_id = null;
+    if (snake.assigned_rider_name === undefined) snake.assigned_rider_name = null;
+  }
+  return snake;
 }
 
 // Helper to convert snake_case PostgreSQL rows to camelCase for TypeScript/Dexie
@@ -249,7 +266,7 @@ class SyncManager {
   private async emitStatus() {
     let pendingCount = 0;
     try {
-      pendingCount = await db.syncQueue.where('synced').equals(0 as any).count();
+      pendingCount = await db.syncQueue.filter(m => !m.synced).count();
       const creds = await this.getCredentials();
       this.hasCloudConfig = !!creds;
     } catch {
@@ -330,7 +347,7 @@ class SyncManager {
       this.isSyncing = true;
       await this.emitStatus();
 
-      const pending = await db.syncQueue.where('synced').equals(0 as any).toArray();
+      const pending = await db.syncQueue.filter(m => !m.synced).toArray();
       if (pending.length === 0) {
         this.isSyncing = false;
         await this.emitStatus();
@@ -344,33 +361,45 @@ class SyncManager {
       if (this.hasCloudConfig) {
         try {
           const supabase = await this.getClient();
-          if (!supabase) throw new Error('Supabase client failed to initialize');
+          if (!supabase) throw new Error('Supabase client failed to initialize with provided credentials');
 
+          const processedIds: string[] = [];
           for (const item of pending) {
             const table = tableNameMap[item.entity] || item.entity;
             if (item.action === 'CREATE' || item.action === 'UPDATE') {
-              const snakeData = toSnakeCase(item.data);
+              const snakeData = sanitizeEntityData(item.entity, item.data);
               snakeData.updated_at = new Date().toISOString();
               const { error } = await supabase.from(table).upsert(snakeData);
-              if (error) throw error;
+              if (error) {
+                console.error(`Supabase upsert error on table "${table}":`, error);
+                throw new Error(`Table "${table}" sync failed: ${error.message || error.details || 'Check if schema.sql was run in Supabase'}`);
+              }
             } else if (item.action === 'DELETE') {
               const { error } = await supabase.from(table).delete().match({ id: item.data.id });
-              if (error) throw error;
+              if (error) {
+                console.error(`Supabase delete error on table "${table}":`, error);
+                throw new Error(`Table "${table}" delete failed: ${error.message || 'Check database permissions'}`);
+              }
             }
+            processedIds.push(item.id);
           }
+
+          if (processedIds.length > 0) {
+            await db.syncQueue.where('id').anyOf(processedIds).delete();
+          }
+
           syncSucceeded = true;
           this.cloudSyncError = null;
         } catch (supabaseErr: any) {
-          this.cloudSyncError = supabaseErr?.message || 'Supabase sync failed';
-          console.warn('Supabase sync attempt error:', supabaseErr);
+          const errMsg = supabaseErr?.message || String(supabaseErr);
+          this.cloudSyncError = errMsg;
+          console.warn('Supabase sync attempt error:', errMsg, supabaseErr);
         }
       } else {
         this.cloudSyncError = null;
       }
 
       if (syncSucceeded) {
-        const ids = pending.map(p => p.id);
-        await db.syncQueue.where('id').anyOf(ids).modify({ synced: true });
         this.lastSyncTime = new Date().toLocaleTimeString();
       }
     } catch (err) {
@@ -379,6 +408,16 @@ class SyncManager {
       this.isSyncing = false;
       await this.emitStatus();
     }
+  }
+
+  // User-initiated or triggerable full sync (Push local queue + Pull cloud updates)
+  public async forceSync(): Promise<{ success: boolean; error?: string }> {
+    await this.processQueue();
+    if (this.cloudSyncError) {
+      return { success: false, error: this.cloudSyncError };
+    }
+    await this.pullFromCloud();
+    return { success: !this.cloudSyncError, error: this.cloudSyncError || undefined };
   }
 }
 

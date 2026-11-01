@@ -12,7 +12,9 @@ import {
   Volume2, 
   VolumeX,
   Clock,
-  Download
+  Download,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { syncManager, type SyncStatus } from '@/lib/sync';
 import { sound } from '@/lib/sound';
@@ -50,6 +52,8 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
   });
 
   const [currentTime, setCurrentTime] = useState<string>('');
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = syncManager.subscribe((status) => {
@@ -67,9 +71,29 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
     };
   }, []);
 
-  const handleManualSync = () => {
+  const handleManualSync = async () => {
     if (soundEnabled) sound.playTap();
-    syncManager.processQueue();
+    if (!syncStatus.hasCloudConfig) {
+      if (onOpenSettings) onOpenSettings();
+      return;
+    }
+
+    if (syncStatus.cloudSyncError) {
+      setShowErrorModal(syncStatus.cloudSyncError);
+      return;
+    }
+
+    setSyncFeedback('Syncing with Supabase...');
+    const result = await syncManager.forceSync();
+    if (result.success) {
+      if (soundEnabled) sound.playSuccess();
+      setSyncFeedback('✓ Synced with Supabase');
+      setTimeout(() => setSyncFeedback(null), 3000);
+    } else {
+      if (soundEnabled) sound.playAlert();
+      setShowErrorModal(result.error || 'Cloud synchronization failed');
+      setSyncFeedback(null);
+    }
   };
 
   return (
@@ -134,12 +158,14 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
           </span>
 
           <span>
-            {!syncStatus.isOnline
+            {syncFeedback
+              ? syncFeedback
+              : !syncStatus.isOnline
               ? `Offline (${syncStatus.pendingCount} queued)`
               : !syncStatus.hasCloudConfig
               ? 'Local Only (Cloud Not Configured • Click to Setup)'
               : syncStatus.cloudSyncError
-              ? `Sync Error (${syncStatus.pendingCount} queued)`
+              ? `Sync Error: Click for Details (${syncStatus.pendingCount} queued)`
               : syncStatus.isSyncing
               ? `Syncing to Supabase... (${syncStatus.pendingCount})`
               : syncStatus.pendingCount > 0
@@ -207,6 +233,80 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
           {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
         </button>
       </div>
+
+      {/* --- SUPABASE SYNC DIAGNOSTIC MODAL --- */}
+      {showErrorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-in fade-in duration-200">
+          <div 
+            className="w-full max-w-md bg-white dark:bg-[#1C1C1E] rounded-3xl shadow-apple-modal border border-black/10 dark:border-white/10 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-red-50 dark:bg-red-950/40">
+              <div className="flex items-center gap-2 text-apple-red">
+                <AlertTriangle className="w-5 h-5 shrink-0" />
+                <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100">
+                  Cloud Sync Diagnostic
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowErrorModal(null)}
+                className="w-8 h-8 rounded-full bg-neutral-200/60 dark:bg-neutral-800 flex items-center justify-center text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="p-3 bg-red-50/80 dark:bg-red-950/30 rounded-2xl border border-red-200 dark:border-red-900/40 space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-apple-red">
+                  Supabase Response Message:
+                </span>
+                <p className="font-mono text-xs text-red-800 dark:text-red-300 break-words">
+                  {showErrorModal}
+                </p>
+              </div>
+
+              <div className="space-y-2 text-xs text-neutral-600 dark:text-neutral-300">
+                <h4 className="font-bold text-neutral-900 dark:text-neutral-100">How to Resolve:</h4>
+                <ol className="list-decimal pl-4 space-y-1.5 text-neutral-600 dark:text-neutral-400">
+                  <li>
+                    <strong>Run SQL Schema:</strong> If the error mentions table or relation does not exist, open your Supabase Dashboard &rarr; <em>SQL Editor</em> &rarr; Paste &amp; Run the database schema.
+                  </li>
+                  <li>
+                    <strong>Verify Anon Key:</strong> In Supabase Settings &rarr; <em>API Keys</em>, copy the public <em>anon</em> key into Restaurant Settings.
+                  </li>
+                  <li>
+                    <strong>Vercel Env Variables:</strong> Set <code className="bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">NEXT_PUBLIC_SUPABASE_URL</code> and <code className="bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in Vercel settings so every laptop connects automatically.
+                  </li>
+                </ol>
+              </div>
+
+              <div className="pt-2 flex items-center gap-2">
+                {onOpenSettings && (
+                  <button
+                    onClick={() => {
+                      setShowErrorModal(null);
+                      onOpenSettings();
+                    }}
+                    className="flex-1 apple-button py-2.5 px-4 rounded-xl bg-apple-blue hover:bg-apple-blue-hover text-white font-bold text-xs shadow-apple-sm transition-all"
+                  >
+                    Open Settings &amp; Setup Guide
+                  </button>
+                )}
+                <button
+                  onClick={async () => {
+                    setShowErrorModal(null);
+                    await handleManualSync();
+                  }}
+                  className="apple-button py-2.5 px-4 rounded-xl border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+                >
+                  Retry Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

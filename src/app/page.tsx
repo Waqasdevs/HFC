@@ -260,9 +260,14 @@ export default function Home() {
     const effectiveDelivery = orderType === 'delivery' ? deliveryCharge : 0;
     const grandTotal = taxableAmount + taxAmount + effectiveDelivery;
 
-    // Generate Order Token (e.g. HFC-101)
-    const orderCount = await db.orders.count();
-    const token = `HFC-${(orderCount + 101).toString().slice(-3)}`;
+    // Generate Order Token (e.g. HFC-101, HFC-102...)
+    const allOrders = await db.orders.toArray();
+    const maxTokenNum = allOrders.reduce((max, o) => {
+      const match = o.token?.match(/\d+/);
+      const val = match ? parseInt(match[0], 10) : 0;
+      return val > max ? val : max;
+    }, 100);
+    const token = `HFC-${maxTokenNum + 1}`;
 
     const newOrder: Order = {
       id: crypto.randomUUID(),
@@ -381,6 +386,46 @@ export default function Home() {
 
     // Open final paid receipt for printing
     setActiveReceiptOrder(updatedOrder);
+  };
+
+  // --- Edit Existing Order (before payment settlement) ---
+  const handleEditOrder = async (updatedOrder: Order, previousTableNumber?: string) => {
+    await db.orders.put(updatedOrder);
+
+    // If dining table changed, reallocate tables
+    if (previousTableNumber !== updatedOrder.tableNumber) {
+      if (previousTableNumber) {
+        const oldTbl = tables.find(t => t.number === previousTableNumber);
+        if (oldTbl && oldTbl.currentOrderId === updatedOrder.id) {
+          await db.diningTables.update(oldTbl.id, {
+            status: 'available',
+            currentOrderId: undefined,
+          });
+          await syncManager.queueMutation('tables', 'UPDATE', {
+            id: oldTbl.id,
+            status: 'available',
+            currentOrderId: null,
+          });
+        }
+      }
+      if (updatedOrder.tableNumber && updatedOrder.type === 'dine_in') {
+        const newTbl = tables.find(t => t.number === updatedOrder.tableNumber);
+        if (newTbl) {
+          await db.diningTables.update(newTbl.id, {
+            status: 'occupied',
+            currentOrderId: updatedOrder.id,
+          });
+          await syncManager.queueMutation('tables', 'UPDATE', {
+            id: newTbl.id,
+            status: 'occupied',
+            currentOrderId: updatedOrder.id,
+          });
+        }
+      }
+    }
+
+    // Queue update for Supabase sync
+    await syncManager.queueMutation('orders', 'UPDATE', updatedOrder);
   };
 
   // --- Table Layout Management Handlers ---
@@ -643,9 +688,13 @@ export default function Home() {
               orders={orders}
               tables={tables}
               currency={settings.currency}
+              menuItems={menuItems}
+              taxRate={settings.taxRate}
+              deliveryFee={settings.defaultDeliveryFee}
               onUpdateStatus={handleUpdateOrderStatus}
               onViewReceipt={(order) => setActiveReceiptOrder(order)}
               onSettleBill={handleSettleBill}
+              onSaveOrder={handleEditOrder}
             />
           )}
 

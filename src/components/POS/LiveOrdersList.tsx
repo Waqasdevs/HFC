@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import type { Order, OrderStatus, Table, PaymentMethod } from '@/types';
+import type { Order, OrderStatus, Table, PaymentMethod, MenuItem, OrderItem, OrderType, CustomerInfo } from '@/types';
 import { 
   Receipt, 
   Clock, 
@@ -15,7 +15,13 @@ import {
   CreditCard,
   ChefHat,
   X,
-  Share2
+  Share2,
+  Pencil,
+  Plus,
+  Minus,
+  Trash2,
+  Search,
+  Save
 } from 'lucide-react';
 import { sound } from '@/lib/sound';
 import confetti from 'canvas-confetti';
@@ -24,18 +30,26 @@ interface LiveOrdersListProps {
   orders: Order[];
   tables: Table[];
   currency: string;
+  menuItems?: MenuItem[];
+  taxRate?: number;
+  deliveryFee?: number;
   onUpdateStatus: (orderId: string, status: OrderStatus) => void;
   onViewReceipt: (order: Order) => void;
   onSettleBill: (orderId: string, tableId: string, paymentMethod: PaymentMethod) => Promise<void> | void;
+  onSaveOrder?: (updatedOrder: Order, previousTableNumber?: string) => Promise<void> | void;
 }
 
 export const LiveOrdersList: React.FC<LiveOrdersListProps> = ({
   orders,
   tables,
   currency,
+  menuItems = [],
+  taxRate = 0,
+  deliveryFee = 150,
   onUpdateStatus,
   onViewReceipt,
   onSettleBill,
+  onSaveOrder,
 }) => {
   const [filterTab, setFilterTab] = useState<string>('active');
   const [, setTick] = useState<number>(0);
@@ -48,6 +62,16 @@ export const LiveOrdersList: React.FC<LiveOrdersListProps> = ({
 
   // Kitchen Slip (KOT) Preview Modal state
   const [kotModalOrder, setKotModalOrder] = useState<Order | null>(null);
+
+  // Edit Order Modal state
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editItems, setEditItems] = useState<OrderItem[]>([]);
+  const [editType, setEditType] = useState<OrderType>('dine_in');
+  const [editTable, setEditTable] = useState<string>('');
+  const [editCustomer, setEditCustomer] = useState<CustomerInfo>({ name: '', phone: '', address: '' });
+  const [editDiscount, setEditDiscount] = useState<number>(0);
+  const [catalogSearch, setCatalogSearch] = useState<string>('');
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
 
   // Timer tick every 10 seconds to update live elapsed minutes on cards
   useEffect(() => {
@@ -110,6 +134,119 @@ export const LiveOrdersList: React.FC<LiveOrdersListProps> = ({
     await onSettleBill(settleModalOrder.id, tableId, settlePaymentMethod);
     setIsSettling(false);
     setSettleModalOrder(null);
+  };
+
+  const handleOpenEditOrder = (order: Order) => {
+    sound.playTap();
+    setEditingOrder(order);
+    setEditItems(JSON.parse(JSON.stringify(order.items || [])));
+    setEditType(order.type);
+    setEditTable(order.tableNumber || '');
+    setEditCustomer(order.customer ? { ...order.customer } : { name: '', phone: '', address: '' });
+    setEditDiscount(order.discount || 0);
+    setCatalogSearch('');
+  };
+
+  const handleQuantityChange = (index: number, delta: number) => {
+    sound.playTap();
+    setEditItems(prev => {
+      const copy = [...prev];
+      const item = copy[index];
+      if (!item) return prev;
+      const newQty = item.quantity + delta;
+      if (newQty <= 0) {
+        copy.splice(index, 1);
+      } else {
+        copy[index] = { ...item, quantity: newQty };
+      }
+      return copy;
+    });
+  };
+
+  const handleRemoveItem = (index: number) => {
+    sound.playTap();
+    setEditItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddItemFromCatalog = (item: MenuItem) => {
+    sound.playTap();
+    setEditItems(prev => {
+      const existingIndex = prev.findIndex(i => i.menuItemId === item.id);
+      if (existingIndex >= 0) {
+        const copy = [...prev];
+        copy[existingIndex] = {
+          ...copy[existingIndex],
+          quantity: copy[existingIndex].quantity + 1
+        };
+        return copy;
+      } else {
+        const newItem: OrderItem = {
+          id: crypto.randomUUID(),
+          menuItemId: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: 1
+        };
+        return [...prev, newItem];
+      }
+    });
+  };
+
+  // Calculations for Order Editing
+  const editSubtotal = editItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const editTax = taxRate ? Math.round(Math.max(0, editSubtotal - editDiscount) * (taxRate / 100)) : 0;
+  const editDelivery = editType === 'delivery' ? (deliveryFee !== undefined ? deliveryFee : 150) : 0;
+  const editTotal = Math.max(0, editSubtotal - editDiscount + editTax + editDelivery);
+
+  const handleSaveEditedOrder = async (andPrintKOT: boolean = false) => {
+    if (!editingOrder || isSavingEdit) return;
+    if (editItems.length === 0) {
+      sound.playAlert();
+      alert('An order must have at least one item.');
+      return;
+    }
+    if (editType === 'dine_in' && !editTable) {
+      sound.playAlert();
+      alert('Please select a Table for this Dine-In order.');
+      return;
+    }
+
+    setIsSavingEdit(true);
+    sound.playSuccess();
+
+    const updatedOrder: Order = {
+      ...editingOrder,
+      type: editType,
+      tableNumber: editType === 'dine_in' ? editTable : undefined,
+      customer: editType === 'delivery' ? editCustomer : undefined,
+      items: editItems,
+      subtotal: editSubtotal,
+      discount: editDiscount,
+      tax: editTax,
+      deliveryCharge: editDelivery,
+      total: editTotal,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (onSaveOrder) {
+      await onSaveOrder(updatedOrder, editingOrder.tableNumber);
+    }
+
+    try {
+      confetti({
+        particleCount: 40,
+        spread: 60,
+        origin: { y: 0.6 }
+      });
+    } catch {}
+
+    setIsSavingEdit(false);
+    const savedOrder = { ...updatedOrder };
+    setEditingOrder(null);
+
+    if (andPrintKOT) {
+      handlePrintKOT(savedOrder);
+    }
   };
 
   const handlePrintKOT = (order: Order) => {
@@ -214,6 +351,17 @@ export const LiveOrdersList: React.FC<LiveOrdersListProps> = ({
                       <span className="text-xl font-black text-neutral-900 dark:text-neutral-100 whitespace-nowrap tracking-tight">
                         {order.token}
                       </span>
+
+                      {/* Quick Edit Icon */}
+                      {order.paymentStatus === 'pending' && onSaveOrder && (
+                        <button
+                          onClick={() => handleOpenEditOrder(order)}
+                          className="p-1 rounded-lg text-neutral-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                          title="Edit Order Items & Details"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       
                       {/* Kitchen / Food Delivery Status Badge */}
                       {order.type === 'dine_in' && !isCompleted && (
@@ -374,7 +522,19 @@ export const LiveOrdersList: React.FC<LiveOrdersListProps> = ({
                       </button>
                     )}
 
-                    {/* 4. Settle Bill Button */}
+                    {/* 4. Edit Order Button (Prior to Payment Settlement) */}
+                    {order.paymentStatus === 'pending' && onSaveOrder && (
+                      <button
+                        onClick={() => handleOpenEditOrder(order)}
+                        className="apple-button px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-xs font-bold flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-all shadow-xs"
+                        title="Edit items, add extra items, change quantities or details before bill settlement"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span>Edit Order</span>
+                      </button>
+                    )}
+
+                    {/* 5. Settle Bill Button */}
                     {order.paymentStatus === 'pending' && (
                       <button
                         onClick={() => handleOpenSettleModal(order)}
@@ -663,6 +823,313 @@ export const LiveOrdersList: React.FC<LiveOrdersListProps> = ({
                 <Printer className="w-4 h-4" />
                 <span>Print Kitchen Slip (Send to Kitchen)</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- EDIT ORDER MODAL (PRE-PAYMENT) --- */}
+      {editingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-md animate-in fade-in duration-200">
+          <div 
+            className="w-full max-w-2xl max-h-[90vh] bg-white dark:bg-[#1C1C1E] rounded-3xl shadow-apple-modal border border-black/10 dark:border-white/10 flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-neutral-50/80 dark:bg-neutral-900/80 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                    <span>Edit Order</span>
+                    <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-apple-blue/10 text-apple-blue font-bold">
+                      {editingOrder.token}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-neutral-500">
+                    Modify items, quantities, table or customer before bill payment
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingOrder(null)}
+                className="w-8 h-8 rounded-full bg-neutral-200/60 dark:bg-neutral-800 flex items-center justify-center text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
+              {/* 1. Items in this Order */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
+                    Order Items ({editItems.reduce((acc, i) => acc + i.quantity, 0)})
+                  </h4>
+                  <span className="text-[11px] text-neutral-400">Tap + / - to adjust quantity</span>
+                </div>
+
+                <div className="divide-y divide-black/5 dark:divide-white/5 border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden bg-neutral-50/60 dark:bg-neutral-900/40">
+                  {editItems.map((item, idx) => (
+                    <div key={idx} className="p-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-xs text-neutral-800 dark:text-neutral-200 truncate">
+                          {item.name}
+                        </div>
+                        <div className="text-[11px] text-neutral-400 font-medium">
+                          {currency} {item.price.toLocaleString()} each
+                          {item.selectedModifiers && item.selectedModifiers.length > 0 && (
+                            <span className="ml-1 text-neutral-500 italic">
+                              ({item.selectedModifiers.map(m => m.choiceName).join(', ')})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Quantity Stepper */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleQuantityChange(idx, -1)}
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 flex items-center justify-center text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors shadow-xs"
+                          title="Decrease Quantity"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="w-7 text-center font-black text-xs text-neutral-900 dark:text-neutral-100">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleQuantityChange(idx, 1)}
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 flex items-center justify-center text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors shadow-xs"
+                          title="Increase Quantity"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Line Item Total & Delete */}
+                      <div className="text-right flex items-center gap-2 shrink-0">
+                        <span className="font-extrabold text-xs text-neutral-900 dark:text-neutral-100 w-20 text-right">
+                          {currency} {(item.price * item.quantity).toLocaleString()}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(idx)}
+                          className="p-1.5 text-neutral-400 hover:text-apple-red transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
+                          title="Remove item from order"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {editItems.length === 0 && (
+                    <div className="p-6 text-center text-xs text-neutral-400 italic">
+                      No items in order. Search below to add items.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 2. Add More Items from Catalog */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
+                    Add Items from Menu Catalog
+                  </h4>
+                </div>
+
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <input
+                    type="text"
+                    value={catalogSearch}
+                    onChange={(e) => setCatalogSearch(e.target.value)}
+                    placeholder="Search burgers, broast, drinks to add..."
+                    className="w-full pl-8 pr-3 py-2 bg-neutral-100 dark:bg-neutral-800/80 rounded-xl text-xs placeholder:text-neutral-400 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-apple-blue/50 border border-black/5 dark:border-white/5"
+                  />
+                </div>
+
+                {/* Filtered Catalog Items Grid */}
+                <div className="max-h-36 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 p-1">
+                  {menuItems
+                    .filter(m => m.isAvailable !== false)
+                    .filter(m => {
+                      if (!catalogSearch.trim()) return true;
+                      const q = catalogSearch.toLowerCase();
+                      return m.name.toLowerCase().includes(q) || m.categoryName?.toLowerCase().includes(q);
+                    })
+                    .slice(0, 8)
+                    .map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => handleAddItemFromCatalog(m)}
+                        className="apple-button p-2 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700/60 hover:border-apple-blue/50 flex items-center justify-between text-left text-xs transition-all shadow-xs group"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <div className="font-bold text-neutral-800 dark:text-neutral-200 truncate group-hover:text-apple-blue">
+                            {m.name}
+                          </div>
+                          <div className="text-[11px] text-neutral-400">
+                            {currency} {m.price.toLocaleString()}
+                          </div>
+                        </div>
+                        <span className="shrink-0 px-2 py-1 rounded-lg bg-apple-blue/10 text-apple-blue font-bold text-[10px] group-hover:bg-apple-blue group-hover:text-white transition-all flex items-center gap-0.5">
+                          <Plus className="w-3 h-3" />
+                          <span>Add</span>
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              </div>
+
+              {/* 3. Order Details: Type, Table, Delivery, Discount */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-black/5 dark:border-white/5">
+                {/* Order Type */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400">Order Channel</label>
+                  <div className="grid grid-cols-3 gap-1">
+                    {[
+                      { id: 'dine_in', label: 'Dine In' },
+                      { id: 'takeaway', label: 'Takeaway' },
+                      { id: 'delivery', label: 'Delivery' }
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          sound.playTap();
+                          setEditType(t.id as OrderType);
+                        }}
+                        className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all ${
+                          editType === t.id
+                            ? 'bg-apple-blue text-white shadow-xs'
+                            : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Table or Delivery Information */}
+                {editType === 'dine_in' ? (
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400">Assigned Table</label>
+                    <select
+                      value={editTable}
+                      onChange={(e) => setEditTable(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-xl text-xs font-bold text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 focus:outline-none"
+                    >
+                      <option value="">Select Table...</option>
+                      {tables.map(tbl => (
+                        <option key={tbl.id} value={tbl.number}>
+                          Table {tbl.number} ({tbl.zone.replace('_', ' ')} • {tbl.capacity}P)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : editType === 'delivery' ? (
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400">Customer Name &amp; Phone</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Name"
+                        value={editCustomer.name}
+                        onChange={(e) => setEditCustomer(prev => ({ ...prev, name: e.target.value }))}
+                        className="flex-1 px-2.5 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-xl text-xs text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Phone"
+                        value={editCustomer.phone}
+                        onChange={(e) => setEditCustomer(prev => ({ ...prev, phone: e.target.value }))}
+                        className="w-28 px-2.5 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-xl text-xs text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400">Takeaway Pickup</label>
+                    <div className="text-xs text-neutral-500 py-1.5">
+                      Customer picks up order at restaurant front counter.
+                    </div>
+                  </div>
+                )}
+
+                {/* Discount */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400">Discount Amount ({currency})</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editDiscount === 0 ? '' : editDiscount}
+                    onChange={(e) => setEditDiscount(Math.max(0, Number(e.target.value) || 0))}
+                    placeholder="0"
+                    className="w-full px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-xl text-xs font-bold text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer: Live Totals & Save Actions */}
+            <div className="p-4 border-t border-black/5 dark:border-white/10 bg-neutral-50/90 dark:bg-neutral-900/90 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="flex items-baseline gap-3 text-xs w-full sm:w-auto justify-between sm:justify-start">
+                <span className="text-neutral-500">
+                  Subtotal: <strong>{currency} {editSubtotal.toLocaleString()}</strong>
+                </span>
+                {editDiscount > 0 && (
+                  <span className="text-apple-green font-bold">
+                    Disc: -{currency} {editDiscount.toLocaleString()}
+                  </span>
+                )}
+                {editTax > 0 && (
+                  <span className="text-neutral-500">
+                    Tax: {currency} {editTax.toLocaleString()}
+                  </span>
+                )}
+                <div className="text-base font-black text-apple-blue pl-2 border-l border-neutral-300 dark:border-neutral-700">
+                  {currency} {editTotal.toLocaleString()}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setEditingOrder(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200/50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveEditedOrder(false)}
+                  disabled={isSavingEdit || editItems.length === 0}
+                  className="flex-1 sm:flex-initial apple-button py-2.5 px-4 rounded-xl bg-apple-blue hover:bg-apple-blue-hover text-white font-bold text-xs shadow-apple-sm flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Changes</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveEditedOrder(true)}
+                  disabled={isSavingEdit || editItems.length === 0}
+                  className="apple-button py-2.5 px-3 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-100 text-neutral-700 dark:text-neutral-200 font-bold text-xs shadow-xs flex items-center justify-center gap-1"
+                  title="Save and print updated KOT slip for kitchen cooks"
+                >
+                  <ChefHat className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Save &amp; KOT</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
