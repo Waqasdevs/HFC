@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS public.employees (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('admin', 'manager', 'cashier', 'chef', 'rider', 'waiter')),
-    pin TEXT NOT NULL,
+    pin TEXT DEFAULT '',
     phone TEXT,
     is_active BOOLEAN NOT NULL DEFAULT true,
     avatar_color TEXT,
