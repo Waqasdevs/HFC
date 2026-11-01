@@ -251,7 +251,7 @@ export const TableGrid: React.FC<TableGridProps> = ({
       </div>
 
       {/* Tables Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
         {filteredTables.map(table => {
           const tableOrder = activeOrders.find(
             o => o.tableNumber === table.number && o.status !== 'delivered' && o.status !== 'cancelled'
@@ -284,13 +284,13 @@ export const TableGrid: React.FC<TableGridProps> = ({
               }`}
             >
               {/* Header */}
-              <div className="flex items-start justify-between">
-                <div>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-extrabold text-xl text-neutral-900 dark:text-neutral-100">
+                    <h3 className="font-extrabold text-xl text-neutral-900 dark:text-neutral-100 whitespace-nowrap">
                       {table.number}
                     </h3>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5 shrink-0">
                       <button
                         onClick={() => handleOpenEditModal(table)}
                         className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors"
@@ -307,15 +307,15 @@ export const TableGrid: React.FC<TableGridProps> = ({
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-neutral-500 mt-0.5">
-                    <Users className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-500 mt-1 whitespace-nowrap">
+                    <Users className="w-3.5 h-3.5 shrink-0" />
                     <span>{table.capacity} Persons</span>
                     <span className="text-neutral-300 dark:text-neutral-600">•</span>
                     <span className="capitalize">{table.zone.replace('_', ' ')}</span>
                   </div>
                 </div>
 
-                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${statusBg}`}>
+                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap shrink-0 ${statusBg}`}>
                   {statusLabel}
                 </span>
               </div>

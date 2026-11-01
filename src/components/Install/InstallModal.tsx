@@ -33,8 +33,8 @@ export const InstallModal: React.FC<InstallModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-apple-blue/15 text-apple-blue flex items-center justify-center">
-              <Download className="w-5 h-5 stroke-[2.2]" />
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-red-600 text-white font-extrabold text-base flex items-center justify-center shadow-apple-sm shadow-orange-500/20 tracking-tight shrink-0">
+              HFC
             </div>
             <div>
               <h3 className="font-bold text-base text-neutral-900 dark:text-neutral-100">
