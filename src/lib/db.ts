@@ -42,8 +42,19 @@ export const db = new HFCDatabase();
 
 // Pre-seeded Initial Database Data
 export async function seedInitialData() {
-  const settingsCount = await db.settings.count();
-  if (settingsCount > 0) return; // already initialized
+  const existingSettings = await db.settings.get('default');
+  const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (existingSettings) {
+    if ((!existingSettings.supabaseUrl || !existingSettings.supabaseAnonKey) && envUrl && envKey) {
+      await db.settings.update('default', {
+        supabaseUrl: envUrl,
+        supabaseAnonKey: envKey,
+      });
+    }
+    return; // already initialized
+  }
 
   // 1. Settings
   await db.settings.put({
@@ -59,6 +70,8 @@ export async function seedInitialData() {
     receiptFooter: 'For Home Delivery Call: +92 300 1234567\nOrder Online: hfc-orders.vercel.app',
     soundEnabled: true,
     autoPrintReceipt: true,
+    supabaseUrl: envUrl || '',
+    supabaseAnonKey: envKey || '',
   });
 
   // 2. Categories

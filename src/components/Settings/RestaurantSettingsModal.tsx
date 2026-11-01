@@ -31,7 +31,19 @@ export const RestaurantSettingsModal: React.FC<RestaurantSettingsModalProps> = (
   onSaveSettings,
   onClose,
 }) => {
-  const [formData, setFormData] = useState<RestaurantSettings>({ ...settings });
+  const [formData, setFormData] = useState<RestaurantSettings>(() => ({
+    ...settings,
+    supabaseUrl: settings.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    supabaseAnonKey: settings.supabaseAnonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+  }));
+
+  useEffect(() => {
+    setFormData(prev => ({
+      ...settings,
+      supabaseUrl: settings.supabaseUrl || prev.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      supabaseAnonKey: settings.supabaseAnonKey || prev.supabaseAnonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    }));
+  }, [settings]);
   const [isSaved, setIsSaved] = useState(false);
   const [isTestingSupabase, setIsTestingSupabase] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);

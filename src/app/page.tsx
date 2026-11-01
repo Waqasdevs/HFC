@@ -491,6 +491,7 @@ export default function Home() {
   const handleSaveSettings = async (newSettings: RestaurantSettings) => {
     await db.settings.put(newSettings);
     await syncManager.queueMutation('settings', 'UPDATE', newSettings);
+    await syncManager.reconnectCloud();
   };
 
   // --- Catalog (Menu & Categories) Handlers ---
