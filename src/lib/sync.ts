@@ -419,6 +419,13 @@ class SyncManager {
     await this.pullFromCloud();
     return { success: !this.cloudSyncError, error: this.cloudSyncError || undefined };
   }
+
+  // Clear stuck offline mutations from the local sync queue
+  public async clearQueue(): Promise<void> {
+    await db.syncQueue.clear();
+    this.cloudSyncError = null;
+    await this.emitStatus();
+  }
 }
 
 export const syncManager = new SyncManager();
