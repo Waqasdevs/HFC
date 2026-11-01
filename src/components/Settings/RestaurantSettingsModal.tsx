@@ -172,11 +172,28 @@ CREATE INDEX IF NOT EXISTS idx_tables_status ON public.tables(status);
 CREATE INDEX IF NOT EXISTS idx_stock_current ON public.stock(current_stock);
 CREATE INDEX IF NOT EXISTS idx_menu_items_category ON public.menu_items(category_id);
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.tables;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.stock;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.menu_items;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.categories;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'orders') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'tables') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.tables;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'stock') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.stock;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'menu_items') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.menu_items;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'categories') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.categories;
+  END IF;
+END $$;
 
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tables ENABLE ROW LEVEL SECURITY;
@@ -187,13 +204,28 @@ ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.menu_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow public anon access for POS operations" ON public.orders;
 CREATE POLICY "Allow public anon access for POS operations" ON public.orders FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public anon access for Tables" ON public.tables;
 CREATE POLICY "Allow public anon access for Tables" ON public.tables FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public anon access for Stock" ON public.stock;
 CREATE POLICY "Allow public anon access for Stock" ON public.stock FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public anon access for Employees" ON public.employees;
 CREATE POLICY "Allow public anon access for Employees" ON public.employees FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public anon access for Shifts" ON public.shifts;
 CREATE POLICY "Allow public anon access for Shifts" ON public.shifts FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public anon access for Settings" ON public.settings;
 CREATE POLICY "Allow public anon access for Settings" ON public.settings FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public anon access for Categories" ON public.categories;
 CREATE POLICY "Allow public anon access for Categories" ON public.categories FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public anon access for Menu Items" ON public.menu_items;
 CREATE POLICY "Allow public anon access for Menu Items" ON public.menu_items FOR ALL USING (true) WITH CHECK (true);`;
 
     navigator.clipboard.writeText(sql);
