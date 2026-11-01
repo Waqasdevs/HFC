@@ -25,6 +25,12 @@ const tableNameMap: Record<string, string> = {
   categories: 'categories',
 };
 
+// Helper to sanitize and clean Supabase URL (strips accidental /rest/v1 or trailing slashes)
+export function cleanSupabaseUrl(url?: string): string {
+  if (!url) return '';
+  return url.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+}
+
 // Helper to convert camelCase object keys to snake_case for PostgreSQL
 export function toSnakeCase(obj: Record<string, any>): Record<string, any> {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
@@ -85,12 +91,14 @@ class SyncManager {
   public async getCredentials(): Promise<{ url: string; key: string } | null> {
     try {
       const settings = await db.settings.get('default');
-      const url = settings?.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-      const key = settings?.supabaseAnonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+      const rawUrl = settings?.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const rawKey = settings?.supabaseAnonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+      const url = cleanSupabaseUrl(rawUrl);
+      const key = rawKey.trim();
       if (url && key) return { url, key };
     } catch {
-      const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      const envUrl = cleanSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+      const envKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
       if (envUrl && envKey) return { url: envUrl, key: envKey };
     }
     return null;

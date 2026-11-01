@@ -19,6 +19,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { sound } from '@/lib/sound';
+import { cleanSupabaseUrl } from '@/lib/sync';
 
 interface RestaurantSettingsModalProps {
   settings: RestaurantSettings;
@@ -48,6 +49,10 @@ export const RestaurantSettingsModal: React.FC<RestaurantSettingsModalProps> = (
   const [isTestingSupabase, setIsTestingSupabase] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [showSetupGuide, setShowSetupGuide] = useState(false);
+  const [showAdvancedCloud, setShowAdvancedCloud] = useState(() => {
+    // If credentials are empty, show inputs. If already configured, keep clean and collapsed.
+    return !(settings.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL);
+  });
   const [copiedSql, setCopiedSql] = useState(false);
 
   const handleChange = (field: keyof RestaurantSettings, value: any) => {
@@ -246,7 +251,12 @@ CREATE POLICY "Allow public anon access for Menu Items" ON public.menu_items FOR
   };
 
   const handleTestCloudConnection = async () => {
-    if (!formData.supabaseUrl || !formData.supabaseAnonKey) {
+    const rawUrl = formData.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const rawKey = formData.supabaseAnonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    const cleanUrl = cleanSupabaseUrl(rawUrl);
+    const cleanKey = rawKey.trim();
+
+    if (!cleanUrl || !cleanKey) {
       sound.playAlert();
       setTestResult('Please provide both Supabase URL and Anon Key');
       return;
@@ -256,16 +266,16 @@ CREATE POLICY "Allow public anon access for Menu Items" ON public.menu_items FOR
     setTestResult(null);
 
     try {
-      const res = await fetch(`${formData.supabaseUrl}/rest/v1/`, {
+      const res = await fetch(`${cleanUrl}/rest/v1/`, {
         headers: {
-          apikey: formData.supabaseAnonKey,
-          Authorization: `Bearer ${formData.supabaseAnonKey}`
+          apikey: cleanKey,
+          Authorization: `Bearer ${cleanKey}`
         }
       });
 
       if (res.ok || res.status === 200 || res.status === 404) {
         sound.playSuccess();
-        setTestResult('Cloud Database Connected Successfully! Free-tier active.');
+        setTestResult('✓ Cloud Database Connected! Realtime Multi-Device Sync is active.');
       } else {
         sound.playAlert();
         setTestResult(`Connection returned HTTP ${res.status}. Verify credentials.`);
@@ -399,151 +409,169 @@ CREATE POLICY "Allow public anon access for Menu Items" ON public.menu_items FOR
           </div>
         </div>
 
-        {/* Section 3: Supabase Free-Tier Cloud Database Sync */}
+        {/* Section 3: Supabase Cloud Database & Realtime Sync */}
         <div className="bg-white dark:bg-[#1C1C1E] rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-apple-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-apple-green" />
-                <span>Supabase Cloud Database (Free Tier Backup)</span>
-              </h3>
+                <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100">
+                  Supabase Cloud Database &amp; Realtime Sync
+                </h3>
+                {(formData.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL) && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-apple-green/15 text-apple-green flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-apple-green animate-pulse" />
+                    Cloud Active
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Automatically backs up orders, menu catalog, tables, and stock to PostgreSQL when connected to Wi-Fi.
+                Automatically syncs orders, tables, catalog, and inventory across all devices in real-time.
               </p>
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-auto">
               <button
                 type="button"
-                onClick={() => setShowSetupGuide(!showSetupGuide)}
-                className="apple-button px-3 py-1.5 rounded-xl bg-apple-blue/10 hover:bg-apple-blue/20 text-apple-blue text-xs font-bold transition-all flex items-center gap-1.5"
-              >
-                <HelpCircle className="w-3.5 h-3.5" />
-                <span>{showSetupGuide ? 'Hide Setup Guide' : 'Setup Instructions'}</span>
-                {showSetupGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
-
-              <a
-                href="https://supabase.com"
-                target="_blank"
-                rel="noreferrer"
-                className="apple-button px-3 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all flex items-center gap-1"
-              >
-                <span>Supabase.com</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-          </div>
-
-          {/* Collapsible Step-by-Step Guide */}
-          {showSetupGuide && (
-            <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-900/70 border border-neutral-200 dark:border-neutral-800 space-y-3.5 animate-in fade-in duration-200 text-xs">
-              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-2">
-                <span className="font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  Free 4-Step Cloud Setup Walkthrough
-                </span>
-
-                <button
-                  type="button"
-                  onClick={handleCopySchemaSql}
-                  className="apple-button px-2.5 py-1 rounded-lg bg-apple-blue text-white font-bold text-[11px] flex items-center gap-1 shadow-sm"
-                  title="Copy full PostgreSQL SQL Schema to clipboard"
-                >
-                  <Copy className="w-3 h-3" />
-                  <span>{copiedSql ? '✓ SQL Copied!' : 'Copy SQL Schema'}</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-neutral-600 dark:text-neutral-300">
-                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-black/5 dark:border-white/5">
-                  <span className="w-5 h-5 rounded-full bg-apple-blue text-white font-bold flex items-center justify-center shrink-0 text-[10px]">
-                    1
-                  </span>
-                  <div>
-                    <strong className="text-neutral-900 dark:text-neutral-100 block">Create Free Project</strong>
-                    Sign up at <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-apple-blue underline">supabase.com</a> and click "New Project" (e.g. name: <code>hfc-pos</code>).
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-black/5 dark:border-white/5">
-                  <span className="w-5 h-5 rounded-full bg-apple-blue text-white font-bold flex items-center justify-center shrink-0 text-[10px]">
-                    2
-                  </span>
-                  <div>
-                    <strong className="text-neutral-900 dark:text-neutral-100 block">Run SQL in Supabase</strong>
-                    In your Supabase project, click <strong>SQL Editor</strong> on the left, paste the schema (click the "Copy SQL Schema" button above), and click <strong>Run</strong>.
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-black/5 dark:border-white/5">
-                  <span className="w-5 h-5 rounded-full bg-apple-blue text-white font-bold flex items-center justify-center shrink-0 text-[10px]">
-                    3
-                  </span>
-                  <div>
-                    <strong className="text-neutral-900 dark:text-neutral-100 block">Copy API Credentials</strong>
-                    Go to <strong>Project Settings → API</strong>. Copy your <strong>Project URL</strong> and <strong>anon public key</strong>.
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-black/5 dark:border-white/5">
-                  <span className="w-5 h-5 rounded-full bg-apple-blue text-white font-bold flex items-center justify-center shrink-0 text-[10px]">
-                    4
-                  </span>
-                  <div>
-                    <strong className="text-neutral-900 dark:text-neutral-100 block">Paste &amp; Connect Below</strong>
-                    Paste both keys below, click <strong>Test Cloud Connection</strong>, and hit <strong>Save Changes</strong>!
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="font-semibold text-neutral-700 dark:text-neutral-300">Supabase Project URL</label>
-              <input
-                type="text"
-                value={formData.supabaseUrl || ''}
-                onChange={(e) => handleChange('supabaseUrl', e.target.value)}
-                placeholder="https://your-project.supabase.co"
-                className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 mt-1 font-mono text-[11px]"
-              />
-            </div>
-
-            <div>
-              <label className="font-semibold text-neutral-700 dark:text-neutral-300">Supabase Anon Public Key</label>
-              <input
-                type="password"
-                value={formData.supabaseAnonKey || ''}
-                onChange={(e) => handleChange('supabaseAnonKey', e.target.value)}
-                placeholder="eyJhbGciOi..."
-                className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 mt-1 font-mono text-[11px]"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
                 onClick={handleTestCloudConnection}
                 disabled={isTestingSupabase}
-                className="apple-button px-4 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+                className="apple-button px-3.5 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-semibold transition-all flex items-center gap-1.5"
               >
                 {isTestingSupabase ? 'Testing Connection...' : 'Test Cloud Connection'}
               </button>
-              {testResult && (
-                <span className={`text-xs font-bold ${testResult.includes('Success') ? 'text-apple-green' : 'text-apple-red'}`}>
-                  {testResult}
-                </span>
-              )}
-            </div>
 
-            <div className="text-[11px] text-neutral-400">
-              Database Provider: <strong>Supabase (PostgreSQL 500MB Free Tier)</strong>
+              <button
+                type="button"
+                onClick={() => setShowAdvancedCloud(!showAdvancedCloud)}
+                className="apple-button px-3 py-1.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 text-xs font-semibold transition-all flex items-center gap-1"
+                title="Configure custom keys or setup guide"
+              >
+                <span>{showAdvancedCloud ? 'Hide Keys' : 'Configure Keys'}</span>
+                {showAdvancedCloud ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
             </div>
           </div>
+
+          {testResult && (
+            <div className={`p-3 rounded-xl text-xs font-bold ${
+              testResult.includes('✓') 
+                ? 'bg-apple-green/10 text-apple-green border border-apple-green/20' 
+                : 'bg-apple-red/10 text-apple-red border border-apple-red/20'
+            }`}>
+              {testResult}
+            </div>
+          )}
+
+          {/* Collapsible Advanced Credentials & Setup Guide */}
+          {showAdvancedCloud && (
+            <div className="space-y-4 pt-2 border-t border-black/5 dark:border-white/5 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400">
+                  Tip: When deployed on Vercel, credentials are managed via Environment Variables automatically.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowSetupGuide(!showSetupGuide)}
+                  className="text-apple-blue text-xs font-bold hover:underline flex items-center gap-1"
+                >
+                  <HelpCircle className="w-3 h-3" />
+                  <span>{showSetupGuide ? 'Hide Instructions' : 'Setup Instructions'}</span>
+                </button>
+              </div>
+
+              {/* Collapsible Step-by-Step Guide */}
+              {showSetupGuide && (
+                <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-900/70 border border-neutral-200 dark:border-neutral-800 space-y-3.5 animate-in fade-in duration-200 text-xs">
+                  <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-2">
+                    <span className="font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      Free 4-Step Cloud Setup Walkthrough
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={handleCopySchemaSql}
+                      className="apple-button px-2.5 py-1 rounded-lg bg-apple-blue text-white font-bold text-[11px] flex items-center gap-1 shadow-sm"
+                      title="Copy full PostgreSQL SQL Schema to clipboard"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>{copiedSql ? '✓ SQL Copied!' : 'Copy SQL Schema'}</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-neutral-600 dark:text-neutral-300">
+                    <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-black/5 dark:border-white/5">
+                      <span className="w-5 h-5 rounded-full bg-apple-blue text-white font-bold flex items-center justify-center shrink-0 text-[10px]">
+                        1
+                      </span>
+                      <div>
+                        <strong className="text-neutral-900 dark:text-neutral-100 block">Create Free Project</strong>
+                        Sign up at <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-apple-blue underline">supabase.com</a> and click "New Project" (e.g. name: <code>hfc-pos</code>).
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-black/5 dark:border-white/5">
+                      <span className="w-5 h-5 rounded-full bg-apple-blue text-white font-bold flex items-center justify-center shrink-0 text-[10px]">
+                        2
+                      </span>
+                      <div>
+                        <strong className="text-neutral-900 dark:text-neutral-100 block">Run SQL in Supabase</strong>
+                        In your Supabase project, click <strong>SQL Editor</strong> on the left, paste the schema (click the "Copy SQL Schema" button above), and click <strong>Run</strong>.
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-black/5 dark:border-white/5">
+                      <span className="w-5 h-5 rounded-full bg-apple-blue text-white font-bold flex items-center justify-center shrink-0 text-[10px]">
+                        3
+                      </span>
+                      <div>
+                        <strong className="text-neutral-900 dark:text-neutral-100 block">Copy API Credentials</strong>
+                        Go to <strong>Project Settings → API Keys</strong>. Copy your <strong>Project URL</strong> and <strong>Publishable key</strong>.
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-black/5 dark:border-white/5">
+                      <span className="w-5 h-5 rounded-full bg-apple-blue text-white font-bold flex items-center justify-center shrink-0 text-[10px]">
+                        4
+                      </span>
+                      <div>
+                        <strong className="text-neutral-900 dark:text-neutral-100 block">Paste &amp; Connect Below</strong>
+                        Paste both keys below, click <strong>Test Cloud Connection</strong>, and hit <strong>Save Changes</strong>!
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="font-semibold text-neutral-700 dark:text-neutral-300">Supabase Project URL</label>
+                  <input
+                    type="text"
+                    value={formData.supabaseUrl || ''}
+                    onChange={(e) => handleChange('supabaseUrl', e.target.value)}
+                    placeholder="https://your-project.supabase.co"
+                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 mt-1 font-mono text-[11px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-neutral-700 dark:text-neutral-300">Supabase Anon Public Key</label>
+                  <input
+                    type="password"
+                    value={formData.supabaseAnonKey || ''}
+                    onChange={(e) => handleChange('supabaseAnonKey', e.target.value)}
+                    placeholder="eyJhbGciOi... or sb_publishable_..."
+                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 mt-1 font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end text-[11px] text-neutral-400">
+                Database Provider: <strong>Supabase (PostgreSQL Free Tier)</strong>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Section 4: Receipt Footer & Toggles */}
