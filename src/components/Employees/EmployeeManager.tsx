@@ -4,16 +4,14 @@ import React, { useState } from 'react';
 import type { Employee, Shift, Order } from '@/types';
 import { 
   Users, 
-  KeyRound, 
   Clock, 
-  ShieldCheck, 
   Plus, 
   UserCheck, 
-  Receipt,
-  Banknote,
-  CreditCard,
+  Banknote, 
+  CreditCard, 
   CheckCircle2,
-  Lock
+  ArrowRightLeft,
+  DollarSign
 } from 'lucide-react';
 import { sound } from '@/lib/sound';
 
@@ -36,45 +34,28 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   onClockIn,
   onClockOut,
 }) => {
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showClockOutModal, setShowClockOutModal] = useState(false);
   const [actualCashInput, setActualCashInput] = useState<number>(0);
   const [shiftNotes, setShiftNotes] = useState('');
 
-  // New employee state
-  const [newName, setNewName] = useState('');
-  const [newRole, setNewRole] = useState<Employee['role']>('cashier');
-  const [newPin, setNewPin] = useState('1234');
-  const [newPhone, setNewPhone] = useState('+92 300 ');
+  // The 3 Brothers list
+  const brothersList = employees.length > 0 ? employees : [
+    { id: 'emp-haseeb', name: 'Haseeb', role: 'manager' as const, pin: '', phone: '+92 300 1111111', isActive: true, avatarColor: '#007AFF' },
+    { id: 'emp-aliyan', name: 'Aliyan', role: 'manager' as const, pin: '', phone: '+92 300 2222222', isActive: true, avatarColor: '#34C759' },
+    { id: 'emp-shaban', name: 'Shaban', role: 'manager' as const, pin: '', phone: '+92 300 3333333', isActive: true, avatarColor: '#FF9500' },
+  ];
 
   // Register calculations for current shift
   const cashSales = orders
-    .filter(o => o.paymentMethod === 'cash' && o.status !== 'cancelled')
-    .reduce((sum, o) => sum + o.total, 0);
+    .filter(o => o.paymentMethod === 'cash' && o.status !== 'cancelled' && o.paymentStatus === 'paid')
+    .reduce((sum, o) => sum + (o.total || 0), 0);
 
   const cardSales = orders
-    .filter(o => o.paymentMethod === 'card' && o.status !== 'cancelled')
-    .reduce((sum, o) => sum + o.total, 0);
+    .filter(o => (o.paymentMethod === 'card' || o.paymentMethod === 'online_transfer') && o.status !== 'cancelled' && o.paymentStatus === 'paid')
+    .reduce((sum, o) => sum + (o.total || 0), 0);
 
   const openingCash = currentShift?.openingCash || 5000;
   const expectedCashDrawer = openingCash + cashSales;
-
-  const handleCreateEmployee = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName || !newPin) return;
-    sound.playSuccess();
-    onAddEmployee({
-      name: newName,
-      role: newRole,
-      pin: newPin,
-      phone: newPhone,
-      isActive: true,
-      avatarColor: newRole === 'admin' ? '#007AFF' : newRole === 'chef' ? '#FF3B30' : '#34C759'
-    });
-    setShowAddModal(false);
-    setNewName('');
-    setNewPin('');
-  };
 
   const handleConfirmClockOut = () => {
     sound.playSuccess();
@@ -82,46 +63,41 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
     setShowClockOutModal(false);
   };
 
+  const handleDirectSwitch = (brother: Employee) => {
+    sound.playSuccess();
+    onClockIn(brother.id, brother.name, brother.role, openingCash);
+  };
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-apple-blue/15 text-apple-blue flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-apple-blue/15 text-apple-blue flex items-center justify-center shrink-0">
             <Users className="w-6 h-6 stroke-[2.2]" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 tracking-tight">
-              Staff &amp; Cash Register Management
+              Partner Brothers &amp; Cash Register Management
             </h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Role permissions, 4-digit PIN unlock, shifts, and cash drawer reconciliation
+              Operated by Haseeb, Aliyan, and Shaban. Seamless shift handovers with zero passwords.
             </p>
           </div>
         </div>
-
-        <button
-          onClick={() => {
-            sound.playTap();
-            setShowAddModal(true);
-          }}
-          className="apple-button px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-bold text-xs rounded-2xl shadow-apple-sm transition-all"
-        >
-          <Plus className="w-3.5 h-3.5 mr-1.5" />
-          Add Team Member
-        </button>
       </div>
 
       {/* Cash Drawer & Shift Reconciliation Card */}
       <div className="bg-gradient-to-br from-white to-neutral-50 dark:from-[#1C1C1E] dark:to-neutral-900 rounded-3xl p-6 border border-black/5 dark:border-white/10 shadow-apple-sm space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-black/5 dark:border-white/5 pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-apple-green/15 text-apple-green flex items-center justify-center">
+            <div className="w-9 h-9 rounded-2xl bg-apple-green/15 text-apple-green flex items-center justify-center shrink-0">
               <Clock className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-apple-green">
-                Active Shift: {currentShift?.employeeName || 'Ayesha (Cashier)'}
+              <div className="text-xs font-bold uppercase tracking-wider text-apple-green flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-apple-green animate-pulse" />
+                Active Shift: {currentShift?.employeeName || 'Haseeb'}
               </div>
               <div className="text-[11px] text-neutral-500">
                 Clocked in at {new Date(currentShift?.clockIn || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -135,9 +111,9 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
               setActualCashInput(expectedCashDrawer);
               setShowClockOutModal(true);
             }}
-            className="apple-button px-4 py-2 rounded-xl bg-apple-orange/15 hover:bg-apple-orange/25 text-apple-orange font-bold text-xs transition-all"
+            className="apple-button px-4 py-2 rounded-xl bg-apple-orange/15 hover:bg-apple-orange/25 text-apple-orange font-bold text-xs transition-all self-start sm:self-auto"
           >
-            End Shift &amp; Reconcile Drawer
+            End Shift &amp; Reconcile Cash Drawer
           </button>
         </div>
 
@@ -153,7 +129,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
           <div className="p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-black/5 dark:border-white/5">
             <span className="text-[11px] font-bold text-neutral-400 uppercase flex items-center gap-1">
               <Banknote className="w-3.5 h-3.5 text-apple-green" />
-              Cash Sales Today
+              Cash Sales on Duty
             </span>
             <div className="text-lg font-black text-apple-green mt-1">
               +{currency} {cashSales.toLocaleString()}
@@ -163,15 +139,15 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
           <div className="p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-black/5 dark:border-white/5">
             <span className="text-[11px] font-bold text-neutral-400 uppercase flex items-center gap-1">
               <CreditCard className="w-3.5 h-3.5 text-apple-blue" />
-              Card / POS Sales
+              Card / Online Sales
             </span>
-            <div className="text-lg font-black text-apple-blue mt-1">
-              +{currency} {cardSales.toLocaleString()}
+            <div className="text-lg font-black text-neutral-900 dark:text-neutral-100 mt-1">
+              {currency} {cardSales.toLocaleString()}
             </div>
           </div>
 
           <div className="p-4 bg-apple-blue/10 dark:bg-apple-blue/20 rounded-2xl border border-apple-blue/20">
-            <span className="text-[11px] font-bold text-apple-blue uppercase">Expected Cash in Drawer</span>
+            <span className="text-[11px] font-bold text-apple-blue uppercase">Expected Drawer Cash</span>
             <div className="text-lg font-black text-apple-blue mt-1">
               {currency} {expectedCashDrawer.toLocaleString()}
             </div>
@@ -179,41 +155,68 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
         </div>
       </div>
 
-      {/* Team Roster Grid */}
+      {/* The 3 Brothers Directory & Instant Duty Switcher */}
       <div className="space-y-3">
-        <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100">Restaurant Team Directory</h3>
+        <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+          <UserCheck className="w-4 h-4 text-apple-blue" />
+          <span>Brother Profiles &bull; Instant Duty Handover</span>
+        </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {employees.map(emp => (
-            <div
-              key={emp.id}
-              className="bg-white dark:bg-[#1C1C1E] rounded-3xl p-5 border border-black/5 dark:border-white/5 shadow-apple-sm flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm text-white shadow-sm"
-                  style={{ backgroundColor: emp.avatarColor || '#007AFF' }}
-                >
-                  {emp.name.slice(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-neutral-900 dark:text-neutral-100">{emp.name}</h4>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
-                      {emp.role}
-                    </span>
-                    <span className="text-[11px] text-neutral-400">{emp.phone}</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {brothersList.map(brother => {
+            const isDuty = currentShift?.employeeId === brother.id || currentShift?.employeeName === brother.name;
+            const color = brother.avatarColor || (brother.name === 'Haseeb' ? '#007AFF' : brother.name === 'Aliyan' ? '#34C759' : '#FF9500');
+
+            return (
+              <div
+                key={brother.id}
+                className={`bg-white dark:bg-[#1C1C1E] rounded-3xl p-5 border shadow-apple-sm flex flex-col justify-between space-y-4 transition-all ${
+                  isDuty
+                    ? 'border-apple-blue ring-2 ring-apple-blue/30 bg-apple-blue/[0.02]'
+                    : 'border-black/5 dark:border-white/5'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base text-white shadow-sm"
+                      style={{ backgroundColor: color }}
+                    >
+                      {brother.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-base text-neutral-900 dark:text-neutral-100">{brother.name}</h4>
+                      <p className="text-xs text-neutral-500 font-medium">Managing Partner &bull; Co-Owner</p>
+                    </div>
                   </div>
+
+                  {isDuty && (
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-apple-green/15 text-apple-green border border-apple-green/20 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-apple-green animate-pulse" />
+                      On Duty
+                    </span>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-xs">
+                  <span className="text-neutral-400 font-medium">No Password Required</span>
+                  {isDuty ? (
+                    <span className="font-bold text-apple-green text-xs flex items-center gap-1">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Active Terminal
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handleDirectSwitch(brother)}
+                      className="apple-button px-3.5 py-1.5 rounded-xl bg-apple-blue hover:bg-apple-blue-hover text-white font-bold text-xs shadow-apple-sm transition-all"
+                    >
+                      Start Shift
+                    </button>
+                  )}
                 </div>
               </div>
-
-              <div className="text-right">
-                <span className="text-[10px] font-mono font-bold px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-500">
-                  PIN: ••••
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -248,7 +251,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
                 type="number"
                 value={actualCashInput}
                 onChange={(e) => setActualCashInput(Number(e.target.value) || 0)}
-                className="w-full text-base font-black px-4 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-center"
+                className="w-full text-base font-black px-4 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-center font-mono"
               />
               {actualCashInput !== expectedCashDrawer && (
                 <p className={`text-[11px] font-bold text-center ${
@@ -261,12 +264,12 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
             </div>
 
             <div className="space-y-1 text-xs">
-              <label className="font-semibold text-neutral-700 dark:text-neutral-300">Shift Notes</label>
+              <label className="font-semibold text-neutral-700 dark:text-neutral-300">Shift Handover Notes</label>
               <input
                 type="text"
                 value={shiftNotes}
                 onChange={(e) => setShiftNotes(e.target.value)}
-                placeholder="Any discrepancy reason or handover notes"
+                placeholder="e.g. Handed over register to Aliyan with Rs. 5000 float"
                 className="w-full px-3 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800"
               />
             </div>
@@ -280,93 +283,11 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
               </button>
               <button
                 onClick={handleConfirmClockOut}
-                className="flex-1 apple-button py-2.5 rounded-xl bg-apple-blue text-white text-xs font-bold shadow-apple-sm"
+                className="flex-1 apple-button py-2.5 rounded-xl bg-apple-blue text-white text-xs font-bold shadow-apple-sm hover:bg-apple-blue-hover"
               >
-                Close Register
+                Close &amp; Hand Over Register
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Employee Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white dark:bg-[#1C1C1E] rounded-3xl p-6 shadow-apple-modal border border-black/5 dark:border-white/10 space-y-4">
-            <h3 className="font-bold text-base text-neutral-900 dark:text-neutral-100">
-              Add New Staff Member
-            </h3>
-
-            <form onSubmit={handleCreateEmployee} className="space-y-3 text-xs">
-              <div>
-                <label className="font-semibold text-neutral-700 dark:text-neutral-300">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Tariq Mehmood"
-                  className="w-full px-3 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 mt-1"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold text-neutral-700 dark:text-neutral-300">Role</label>
-                  <select
-                    value={newRole}
-                    onChange={(e) => setNewRole(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 mt-1"
-                  >
-                    <option value="cashier">Cashier</option>
-                    <option value="manager">Manager</option>
-                    <option value="chef">Kitchen Chef</option>
-                    <option value="rider">Delivery Rider</option>
-                    <option value="waiter">Waiter</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-semibold text-neutral-700 dark:text-neutral-300">4-Digit PIN</label>
-                  <input
-                    type="password"
-                    maxLength={4}
-                    required
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value)}
-                    placeholder="4444"
-                    className="w-full px-3 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 mt-1 font-mono"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="font-semibold text-neutral-700 dark:text-neutral-300">Phone</label>
-                <input
-                  type="text"
-                  value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 mt-1"
-                />
-              </div>
-
-              <div className="flex items-center gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 apple-button py-2.5 rounded-xl border border-neutral-300 dark:border-neutral-700 text-xs font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 apple-button py-2.5 rounded-xl bg-apple-blue text-white text-xs font-bold shadow-apple-sm"
-                >
-                  Save Team Member
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

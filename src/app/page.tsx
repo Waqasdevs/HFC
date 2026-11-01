@@ -281,7 +281,7 @@ export default function Home() {
       customer: orderType === 'delivery' ? { ...customerInfo } : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      serverName: currentStaff?.name || 'Ayesha (Cashier)',
+      serverName: currentStaff?.name || 'Haseeb',
     };
 
     // 1. Commit Order to Dexie
@@ -477,6 +477,36 @@ export default function Home() {
     await syncManager.queueMutation('employees', 'CREATE', newEmp);
   };
 
+  const handleClockIn = async (employeeId: string, employeeName: string, role: Employee['role'], openingCash: number) => {
+    const shift = {
+      id: 'shift-current',
+      employeeId,
+      employeeName,
+      role,
+      clockIn: new Date().toISOString(),
+      openingCash,
+      expectedCash: openingCash,
+      notes: `${employeeName} active on shift`
+    };
+    await db.shifts.put(shift);
+    const emp = employees.find(e => e.id === employeeId);
+    if (emp) setCurrentStaff(emp);
+  };
+
+  const handleSwitchStaff = async (emp: Employee) => {
+    setCurrentStaff(emp);
+    await db.shifts.put({
+      id: 'shift-current',
+      employeeId: emp.id,
+      employeeName: emp.name,
+      role: emp.role,
+      clockIn: new Date().toISOString(),
+      openingCash: currentShift?.openingCash || 5000,
+      expectedCash: currentShift?.expectedCash || 5000,
+      notes: `${emp.name} active on duty`
+    });
+  };
+
   const handleClockOut = async (closingCash: number, notes: string) => {
     if (currentShift) {
       await db.shifts.update(currentShift.id, {
@@ -650,7 +680,7 @@ export default function Home() {
               orders={orders}
               currency={settings.currency}
               onAddEmployee={handleAddEmployee}
-              onClockIn={() => {}}
+              onClockIn={handleClockIn}
               onClockOut={handleClockOut}
             />
           )}
@@ -717,12 +747,12 @@ export default function Home() {
         />
       )}
 
-      {/* C. 4-Digit PIN Quick Switch Modal */}
+      {/* C. Brother Shift Handover Modal */}
       {isPinSwitchOpen && (
         <PinQuickSwitchModal
           employees={employees}
           currentStaff={currentStaff}
-          onSwitchStaff={(emp) => setCurrentStaff(emp)}
+          onSwitchStaff={handleSwitchStaff}
           onClose={() => setIsPinSwitchOpen(false)}
         />
       )}

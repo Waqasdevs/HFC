@@ -53,6 +53,29 @@ export async function seedInitialData() {
         supabaseAnonKey: envKey,
       });
     }
+
+    // Migration: Ensure the 3 brothers (Haseeb, Aliyan, Shaban) are the employee profiles
+    const currentEmps = await db.employees.toArray();
+    const hasBrothers = currentEmps.some(e => e.id === 'emp-haseeb');
+    if (!hasBrothers || currentEmps.length === 0 || currentEmps.some(e => e.id === 'emp-1' || e.name.includes('Ayesha'))) {
+      const brothers: Employee[] = [
+        { id: 'emp-haseeb', name: 'Haseeb', role: 'manager', pin: '', phone: '+92 300 1111111', isActive: true, avatarColor: '#007AFF' },
+        { id: 'emp-aliyan', name: 'Aliyan', role: 'manager', pin: '', phone: '+92 300 2222222', isActive: true, avatarColor: '#34C759' },
+        { id: 'emp-shaban', name: 'Shaban', role: 'manager', pin: '', phone: '+92 300 3333333', isActive: true, avatarColor: '#FF9500' },
+      ];
+      await db.employees.clear();
+      await db.employees.bulkPut(brothers);
+      await db.shifts.put({
+        id: 'shift-current',
+        employeeId: 'emp-haseeb',
+        employeeName: 'Haseeb',
+        role: 'manager',
+        clockIn: new Date().toISOString(),
+        openingCash: 5000,
+        expectedCash: 5000,
+        notes: 'Haseeb shift active'
+      });
+    }
     return; // already initialized
   }
 
@@ -268,26 +291,23 @@ export async function seedInitialData() {
   ];
   await db.diningTables.bulkPut(initialTables);
 
-  // 6. Employees
-  const initialEmployees: Employee[] = [
-    { id: 'emp-1', name: 'Waqas (Admin)', role: 'admin', pin: '1111', phone: '+92 300 0000001', isActive: true, avatarColor: '#007AFF' },
-    { id: 'emp-2', name: 'Daniyal (Manager)', role: 'manager', pin: '2222', phone: '+92 300 0000002', isActive: true, avatarColor: '#34C759' },
-    { id: 'emp-3', name: 'Ayesha (Cashier)', role: 'cashier', pin: '3333', phone: '+92 300 0000003', isActive: true, avatarColor: '#FF9500' },
-    { id: 'emp-4', name: 'Chef Tariq (Kitchen)', role: 'chef', pin: '4444', phone: '+92 300 0000004', isActive: true, avatarColor: '#FF3B30' },
-    { id: 'emp-5', name: 'Hamza (Rider)', role: 'rider', pin: '5555', phone: '+92 300 0000005', isActive: true, avatarColor: '#5856D6' },
-    { id: 'emp-6', name: 'Bilal (Waiter)', role: 'waiter', pin: '6666', phone: '+92 300 0000006', isActive: true, avatarColor: '#5AC8FA' },
+  // 6. Employees: The 3 Brothers Managing HFC
+  const initialBrothers: Employee[] = [
+    { id: 'emp-haseeb', name: 'Haseeb', role: 'manager', pin: '', phone: '+92 300 1111111', isActive: true, avatarColor: '#007AFF' },
+    { id: 'emp-aliyan', name: 'Aliyan', role: 'manager', pin: '', phone: '+92 300 2222222', isActive: true, avatarColor: '#34C759' },
+    { id: 'emp-shaban', name: 'Shaban', role: 'manager', pin: '', phone: '+92 300 3333333', isActive: true, avatarColor: '#FF9500' },
   ];
-  await db.employees.bulkPut(initialEmployees);
+  await db.employees.bulkPut(initialBrothers);
 
   // 7. Seed initial shift
   await db.shifts.put({
     id: 'shift-current',
-    employeeId: 'emp-3',
-    employeeName: 'Ayesha (Cashier)',
-    role: 'cashier',
+    employeeId: 'emp-haseeb',
+    employeeName: 'Haseeb',
+    role: 'manager',
     clockIn: new Date().toISOString(),
     openingCash: 5000,
     expectedCash: 5000,
-    notes: 'Morning shift opening register'
+    notes: 'Haseeb shift active'
   });
 }

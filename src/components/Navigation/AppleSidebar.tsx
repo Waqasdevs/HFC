@@ -58,7 +58,7 @@ export const AppleSidebar: React.FC<AppleSidebarProps> = ({
     { id: 'tables' as NavTab, label: 'Table Layout', icon: LayoutGrid, badge: 0 },
     { id: 'delivery' as NavTab, label: 'Home Delivery', icon: Bike, badge: activeDeliveryCount, badgeColor: 'bg-apple-indigo' },
     { id: 'inventory' as NavTab, label: 'Inventory / Stock', icon: Package, badge: lowStockCount, badgeColor: 'bg-apple-red' },
-    { id: 'employees' as NavTab, label: 'Staff & Shifts', icon: Users, badge: 0 },
+    { id: 'employees' as NavTab, label: 'Brothers & Shifts', icon: Users, badge: 0 },
     { id: 'reports' as NavTab, label: 'Sales Reports', icon: BarChart3, badge: 0 },
     { id: 'settings' as NavTab, label: 'Settings', icon: Settings, badge: 0 },
   ];
@@ -139,27 +139,27 @@ export const AppleSidebar: React.FC<AppleSidebarProps> = ({
         <div 
           onClick={onOpenPinSwitch}
           className="p-2.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center justify-between"
-          title="Click to Switch Staff (Enter PIN)"
+          title="Click to Switch Brother (1-Click Switch)"
         >
           <div className="flex items-center gap-2.5">
             <div 
               className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-sm"
               style={{ backgroundColor: currentStaff?.avatarColor || '#007AFF' }}
             >
-              {currentStaff ? currentStaff.name.slice(0, 2).toUpperCase() : 'POS'}
+              {currentStaff ? currentStaff.name.slice(0, 2).toUpperCase() : 'HA'}
             </div>
             <div className="text-left">
               <div className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 line-clamp-1">
-                {currentStaff?.name || 'Ayesha (Cashier)'}
+                {currentStaff?.name || 'Haseeb'}
               </div>
               <div className="text-[11px] capitalize text-neutral-500 dark:text-neutral-400 font-medium">
-                {currentStaff?.role || 'cashier'} • Shift Active
+                Partner &bull; On Duty
               </div>
             </div>
           </div>
           <button 
             className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
-            aria-label="Switch User"
+            aria-label="Switch Brother"
           >
             <LogOut className="w-4 h-4" />
           </button>
