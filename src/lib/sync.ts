@@ -70,6 +70,46 @@ export function toCamelCase(obj: Record<string, any>): Record<string, any> {
   return result;
 }
 
+// Helper to guarantee required columns have safe fallback values for PostgreSQL
+export function ensureEntityDefaults(entity: string, data: Record<string, any>): void {
+  if (!data) return;
+
+  if (entity === 'tables' || entity === 'diningTables') {
+    if (!data.number) {
+      if (typeof data.id === 'string' && data.id.startsWith('tbl-')) {
+        const numPart = data.id.replace('tbl-', '');
+        data.number = `T-${numPart.padStart(2, '0')}`;
+      } else {
+        data.number = data.id || 'T-01';
+      }
+    }
+    if (!data.zone) data.zone = 'indoor';
+    if (data.capacity === undefined || data.capacity === null) data.capacity = 4;
+    if (!data.status) data.status = 'available';
+  } else if (entity === 'orders') {
+    if (!data.token) data.token = 'HFC-001';
+    if (!data.type) data.type = 'dine_in';
+    if (!data.items) data.items = [];
+    if (data.total === undefined || data.total === null) data.total = 0;
+    if (!data.payment_status) data.payment_status = 'paid';
+    if (!data.payment_method) data.payment_method = 'cash';
+  } else if (entity === 'stock') {
+    if (!data.name) data.name = data.id || 'Stock Item';
+    if (!data.category) data.category = 'Meat';
+    if (!data.unit) data.unit = 'kg';
+  } else if (entity === 'employees') {
+    if (!data.name) data.name = 'Manager';
+    if (!data.role) data.role = 'manager';
+    if (data.pin === undefined) data.pin = '';
+  } else if (entity === 'categories') {
+    if (!data.name) data.name = data.id || 'Category';
+    if (!data.icon) data.icon = 'UtensilsCrossed';
+  } else if (entity === 'menuItems' || entity === 'menu_items') {
+    if (!data.name) data.name = 'Menu Item';
+    if (!data.category_name) data.category_name = 'Burgers & Sandwiches';
+  }
+}
+
 class SyncManager {
   private isOnline: boolean = true;
   private isSyncing: boolean = false;
@@ -207,6 +247,17 @@ class SyncManager {
       if (cloudTables && cloudTables.length > 0) {
         const camelTables = cloudTables.map(toCamelCase);
         await db.diningTables.bulkPut(camelTables as any);
+      } else {
+        const localTables = await db.diningTables.toArray();
+        if (localTables.length > 0) {
+          const snakeTables = localTables.map(t => {
+            const s = sanitizeEntityData('tables', t);
+            ensureEntityDefaults('tables', s);
+            s.updated_at = new Date().toISOString();
+            return s;
+          });
+          await supabase.from('tables').upsert(snakeTables);
+        }
       }
 
       // Pull menu items
@@ -214,6 +265,17 @@ class SyncManager {
       if (cloudItems && cloudItems.length > 0) {
         const camelItems = cloudItems.map(toCamelCase);
         await db.menuItems.bulkPut(camelItems as any);
+      } else {
+        const localItems = await db.menuItems.toArray();
+        if (localItems.length > 0) {
+          const snakeItems = localItems.map(m => {
+            const s = sanitizeEntityData('menuItems', m);
+            ensureEntityDefaults('menuItems', s);
+            s.updated_at = new Date().toISOString();
+            return s;
+          });
+          await supabase.from('menu_items').upsert(snakeItems);
+        }
       }
 
       // Pull categories
@@ -221,6 +283,17 @@ class SyncManager {
       if (cloudCats && cloudCats.length > 0) {
         const camelCats = cloudCats.map(toCamelCase);
         await db.categories.bulkPut(camelCats as any);
+      } else {
+        const localCats = await db.categories.toArray();
+        if (localCats.length > 0) {
+          const snakeCats = localCats.map(c => {
+            const s = sanitizeEntityData('categories', c);
+            ensureEntityDefaults('categories', s);
+            s.updated_at = new Date().toISOString();
+            return s;
+          });
+          await supabase.from('categories').upsert(snakeCats);
+        }
       }
 
       // Pull stock
@@ -228,6 +301,17 @@ class SyncManager {
       if (cloudStock && cloudStock.length > 0) {
         const camelStock = cloudStock.map(toCamelCase);
         await db.stock.bulkPut(camelStock as any);
+      } else {
+        const localStock = await db.stock.toArray();
+        if (localStock.length > 0) {
+          const snakeStock = localStock.map(s => {
+            const sn = sanitizeEntityData('stock', s);
+            ensureEntityDefaults('stock', sn);
+            sn.updated_at = new Date().toISOString();
+            return sn;
+          });
+          await supabase.from('stock').upsert(snakeStock);
+        }
       }
 
       this.lastSyncTime = new Date().toLocaleTimeString();
@@ -388,12 +472,56 @@ class SyncManager {
           const supabase = await this.getClient();
           if (!supabase) throw new Error('Supabase client failed to initialize with provided credentials');
 
+          const dexieEntityMap: Record<string, string> = {
+            orders: 'orders',
+            tables: 'diningTables',
+            diningTables: 'diningTables',
+            stock: 'stock',
+            employees: 'employees',
+            shifts: 'shifts',
+            settings: 'settings',
+            menuItems: 'menuItems',
+            categories: 'categories',
+          };
+
           const processedIds: string[] = [];
           for (const item of pending) {
             const table = tableNameMap[item.entity] || item.entity;
             if (item.action === 'CREATE' || item.action === 'UPDATE') {
-              const snakeData = sanitizeEntityData(item.entity, item.data);
+              // 1. Fetch full record from local Dexie database if available to prevent partial updates from violating NOT NULL constraints
+              const dexieTable = dexieEntityMap[item.entity];
+              let localRecord: any = null;
+              if (dexieTable && item.data?.id && (db as any)[dexieTable]) {
+                try {
+                  localRecord = await (db as any)[dexieTable].get(item.data.id);
+                } catch {
+                  // Ignore
+                }
+              }
+
+              // 2. If it's an UPDATE and target has an id, try direct column-level update on Supabase first
+              if (item.action === 'UPDATE' && item.data?.id) {
+                const partialSnake = sanitizeEntityData(item.entity, item.data);
+                partialSnake.updated_at = new Date().toISOString();
+                
+                const { data: updatedRows, error: updateErr } = await supabase
+                  .from(table)
+                  .update(partialSnake)
+                  .match({ id: item.data.id })
+                  .select('id');
+
+                if (!updateErr && updatedRows && updatedRows.length > 0) {
+                  processedIds.push(item.id);
+                  continue;
+                }
+              }
+
+              // 3. Fallback to UPSERT with full merged payload and guaranteed column defaults
+              const merged = localRecord ? { ...localRecord, ...item.data } : item.data;
+              const snakeData = sanitizeEntityData(item.entity, merged);
               snakeData.updated_at = new Date().toISOString();
+              ensureEntityDefaults(item.entity, snakeData);
+
               const { error } = await supabase.from(table).upsert(snakeData);
               if (error) {
                 console.error(`Supabase upsert error on table "${table}":`, error);

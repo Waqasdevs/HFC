@@ -31,14 +31,31 @@ CREATE TABLE IF NOT EXISTS public.orders (
 -- 2. Restaurant Dining Tables
 CREATE TABLE IF NOT EXISTS public.tables (
     id TEXT PRIMARY KEY,
-    number TEXT NOT NULL UNIQUE,
-    zone TEXT NOT NULL,
+    number TEXT,
+    zone TEXT DEFAULT 'indoor',
     capacity INT NOT NULL DEFAULT 4,
     status TEXT NOT NULL DEFAULT 'available',
     current_order_id TEXT,
     guest_count INT,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now())
 );
+
+-- Safe migration: Drop NOT NULL from tables.number and tables.zone so partial status updates never fail
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'tables' AND column_name = 'number' AND is_nullable = 'NO'
+    ) THEN
+        ALTER TABLE public.tables ALTER COLUMN number DROP NOT NULL;
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'tables' AND column_name = 'zone' AND is_nullable = 'NO'
+    ) THEN
+        ALTER TABLE public.tables ALTER COLUMN zone DROP NOT NULL;
+    END IF;
+END $$;
 
 -- 3. Stock & Ingredients Inventory
 CREATE TABLE IF NOT EXISTS public.stock (

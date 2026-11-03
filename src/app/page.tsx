@@ -296,15 +296,13 @@ export default function Home() {
     if (orderType === 'dine_in' && selectedTable) {
       const tbl = tables.find(t => t.number === selectedTable);
       if (tbl) {
-        await db.diningTables.update(tbl.id, {
+        const updatedTable: Table = {
+          ...tbl,
           status: 'occupied',
           currentOrderId: newOrder.id,
-        });
-        await syncManager.queueMutation('tables', 'UPDATE', { 
-          id: tbl.id, 
-          status: 'occupied', 
-          currentOrderId: newOrder.id 
-        });
+        };
+        await db.diningTables.update(tbl.id, updatedTable);
+        await syncManager.queueMutation('tables', 'UPDATE', updatedTable);
       }
     }
 
@@ -373,15 +371,13 @@ export default function Home() {
       : (order.tableNumber ? tables.find(t => t.number === order.tableNumber) : null);
 
     if (targetTable) {
-      await db.diningTables.update(targetTable.id, {
+      const updatedTable: Table = {
+        ...targetTable,
         status: 'available',
         currentOrderId: undefined,
-      });
-      await syncManager.queueMutation('tables', 'UPDATE', {
-        id: targetTable.id,
-        status: 'available',
-        currentOrderId: null,
-      });
+      };
+      await db.diningTables.update(targetTable.id, updatedTable);
+      await syncManager.queueMutation('tables', 'UPDATE', updatedTable);
     }
 
     // Open final paid receipt for printing
@@ -397,29 +393,25 @@ export default function Home() {
       if (previousTableNumber) {
         const oldTbl = tables.find(t => t.number === previousTableNumber);
         if (oldTbl && oldTbl.currentOrderId === updatedOrder.id) {
-          await db.diningTables.update(oldTbl.id, {
+          const updatedOld: Table = {
+            ...oldTbl,
             status: 'available',
             currentOrderId: undefined,
-          });
-          await syncManager.queueMutation('tables', 'UPDATE', {
-            id: oldTbl.id,
-            status: 'available',
-            currentOrderId: null,
-          });
+          };
+          await db.diningTables.update(oldTbl.id, updatedOld);
+          await syncManager.queueMutation('tables', 'UPDATE', updatedOld);
         }
       }
       if (updatedOrder.tableNumber && updatedOrder.type === 'dine_in') {
         const newTbl = tables.find(t => t.number === updatedOrder.tableNumber);
         if (newTbl) {
-          await db.diningTables.update(newTbl.id, {
+          const updatedNew: Table = {
+            ...newTbl,
             status: 'occupied',
             currentOrderId: updatedOrder.id,
-          });
-          await syncManager.queueMutation('tables', 'UPDATE', {
-            id: newTbl.id,
-            status: 'occupied',
-            currentOrderId: updatedOrder.id,
-          });
+          };
+          await db.diningTables.update(newTbl.id, updatedNew);
+          await syncManager.queueMutation('tables', 'UPDATE', updatedNew);
         }
       }
     }
@@ -462,7 +454,8 @@ export default function Home() {
     }
 
     await db.orders.update(orderId, updates);
-    await syncManager.queueMutation('orders', 'UPDATE', { id: orderId, ...updates });
+    const fullOrder = order ? { ...order, ...updates } : { id: orderId, ...updates };
+    await syncManager.queueMutation('orders', 'UPDATE', fullOrder);
 
     // If delivered/completed or cancelled, free the table if dine-in
     if (status === 'delivered' || status === 'cancelled') {
@@ -470,32 +463,38 @@ export default function Home() {
       if (tableNum) {
         const tbl = tables.find(t => t.number === tableNum);
         if (tbl) {
-          await db.diningTables.update(tbl.id, { status: 'available', currentOrderId: undefined });
-          await syncManager.queueMutation('tables', 'UPDATE', { id: tbl.id, status: 'available', currentOrderId: null });
+          const updatedTbl: Table = { ...tbl, status: 'available', currentOrderId: undefined };
+          await db.diningTables.update(tbl.id, updatedTbl);
+          await syncManager.queueMutation('tables', 'UPDATE', updatedTbl);
         }
       }
     }
   };
 
   const handleUpdateTableStatus = async (tableId: string, status: Table['status']) => {
-    await db.diningTables.update(tableId, { status });
-    await syncManager.queueMutation('tables', 'UPDATE', { id: tableId, status });
+    const existing = tables.find(t => t.id === tableId);
+    if (existing) {
+      const updatedTable: Table = { ...existing, status };
+      await db.diningTables.update(tableId, updatedTable);
+      await syncManager.queueMutation('tables', 'UPDATE', updatedTable);
+    } else {
+      await db.diningTables.update(tableId, { status });
+      await syncManager.queueMutation('tables', 'UPDATE', { id: tableId, status });
+    }
   };
 
   const handleAssignRider = async (orderId: string, riderId: string, riderName: string) => {
     sound.playTap();
-    await db.orders.update(orderId, {
+    const existingOrder = orders.find(o => o.id === orderId);
+    const updates = {
       assignedRiderId: riderId,
       assignedRiderName: riderName,
-      status: 'out_for_delivery',
+      status: 'out_for_delivery' as const,
       updatedAt: new Date().toISOString(),
-    });
-    await syncManager.queueMutation('orders', 'UPDATE', {
-      id: orderId,
-      assignedRiderId: riderId,
-      assignedRiderName: riderName,
-      status: 'out_for_delivery',
-    });
+    };
+    await db.orders.update(orderId, updates);
+    const fullUpdated = existingOrder ? { ...existingOrder, ...updates } : { id: orderId, ...updates };
+    await syncManager.queueMutation('orders', 'UPDATE', fullUpdated);
   };
 
   const handleUpdateStock = async (id: string, newStock: number) => {
