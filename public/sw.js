@@ -1,5 +1,5 @@
-// HFC Offline Service Worker (Network-First with Offline Cache Fallback)
-const CACHE_NAME = 'hfc-pos-cache-v2';
+// HFC Service Worker (Network-First with Offline Cache Fallback)
+const CACHE_NAME = 'hfc-landing-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

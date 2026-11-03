@@ -284,27 +284,10 @@ class SyncManager {
         }
       }
 
-      // Pull menu items
-      const { data: cloudItems } = await supabase.from('menu_items').select('*');
-      if (cloudItems && cloudItems.length > 0) {
-        const camelItems = cloudItems.map(toCamelCase);
-        await db.menuItems.bulkPut(camelItems as any);
-      } else {
-        const localItems = await db.menuItems.toArray();
-        if (localItems.length > 0) {
-          const snakeItems = localItems.map(m => {
-            const s = sanitizeEntityData('menuItems', m);
-            ensureEntityDefaults('menuItems', s);
-            s.updated_at = new Date().toISOString();
-            return s;
-          });
-          await supabase.from('menu_items').upsert(snakeItems);
-        }
-      }
-
       // Pull categories
       const { data: cloudCats } = await supabase.from('categories').select('*');
-      if (cloudCats && cloudCats.length > 0) {
+      const hasHfcDeals = cloudCats?.some(c => c.id === 'cat-deals');
+      if (cloudCats && cloudCats.length >= 10 && hasHfcDeals) {
         const camelCats = cloudCats.map(toCamelCase);
         await db.categories.bulkPut(camelCats as any);
       } else {
@@ -317,6 +300,27 @@ class SyncManager {
             return s;
           });
           await supabase.from('categories').upsert(snakeCats);
+        }
+      }
+
+      // Pull menu items
+      const { data: cloudItems } = await supabase.from('menu_items').select('*');
+      const hasHfcDeal1 = cloudItems?.some(i => i.id === 'deal-1');
+      if (cloudItems && cloudItems.length >= 20 && hasHfcDeal1) {
+        const camelItems = cloudItems.map(toCamelCase);
+        await db.menuItems.bulkPut(camelItems as any);
+      } else {
+        const localItems = await db.menuItems.toArray();
+        if (localItems.length > 0) {
+          const snakeItems = localItems.map(m => {
+            const s = sanitizeEntityData('menuItems', m);
+            ensureEntityDefaults('menuItems', s);
+            s.updated_at = new Date().toISOString();
+            return s;
+          });
+          for (let i = 0; i < snakeItems.length; i += 40) {
+            await supabase.from('menu_items').upsert(snakeItems.slice(i, i + 40));
+          }
         }
       }
 
@@ -342,6 +346,32 @@ class SyncManager {
       await this.emitStatus();
     } catch (err: any) {
       console.warn('Supabase cloud pull note:', err?.message || err);
+    }
+  }
+
+  public async pushCatalog(categories: any[], items: any[]): Promise<void> {
+    const supabase = await this.getClient();
+    if (!supabase) return;
+    try {
+      const snakeCats = categories.map(c => {
+        const s = sanitizeEntityData('categories', c);
+        ensureEntityDefaults('categories', s);
+        s.updated_at = new Date().toISOString();
+        return s;
+      });
+      await supabase.from('categories').upsert(snakeCats);
+
+      const snakeItems = items.map(m => {
+        const s = sanitizeEntityData('menuItems', m);
+        ensureEntityDefaults('menuItems', s);
+        s.updated_at = new Date().toISOString();
+        return s;
+      });
+      for (let i = 0; i < snakeItems.length; i += 40) {
+        await supabase.from('menu_items').upsert(snakeItems.slice(i, i + 40));
+      }
+    } catch (err) {
+      console.warn('Error pushing catalog to Supabase:', err);
     }
   }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   Wifi, 
   WifiOff, 
@@ -125,6 +126,13 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
     <header className="h-16 w-full flex items-center justify-between px-4 lg:px-6 border-b border-black/5 dark:border-white/10 bg-white/70 dark:bg-[#18181b]/70 backdrop-blur-2xl z-20 select-none min-w-0">
       {/* Left Search / Filter */}
       <div className="flex items-center gap-3 flex-1 max-w-xs sm:max-w-sm lg:max-w-md min-w-0">
+        <Link
+          href="/"
+          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-200/60 dark:bg-neutral-800/70 text-xs font-medium text-neutral-700 dark:text-neutral-200 hover:opacity-90 shrink-0"
+          title="Back to HFC OS Pakistan Overview"
+        >
+          <span>← Overview</span>
+        </Link>
         <div className="relative w-full min-w-0">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
           <input

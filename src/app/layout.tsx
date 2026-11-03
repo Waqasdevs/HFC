@@ -1,35 +1,58 @@
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
-export const metadata: Metadata = {
-  title: 'HFC POS - Restaurant Order Management System',
-  description: 'High-performance, offline-first Restaurant Order Management System built with Apple Design Guidelines',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'HFC POS',
-  },
-  icons: {
-    icon: '/icon.svg',
-    apple: '/icon.svg',
-  },
-};
-
 export const viewport: Viewport = {
-  themeColor: '#007AFF',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  themeColor: '#010102',
+};
+
+export const metadata: Metadata = {
+  metadataBase: new URL('https://hfc-orders.vercel.app'),
+  title: 'HFC OS — Offline-First Restaurant Order Management System for Pakistan',
+  description:
+    'Built inside a real Pakistani restaurant kitchen. Run 80mm thermal KOT printing, live Kitchen Display Screens, table floor plans, and zero-commission direct delivery even when PTCL fiber drops.',
+  keywords: [
+    'restaurant POS Pakistan',
+    'offline POS Lahore Karachi Islamabad',
+    '80mm thermal KOT printer software',
+    'kitchen display system Pakistan',
+    'zero commission delivery restaurant system',
+    'FBR PRA SRB restaurant billing software',
+  ],
+  manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: 'HFC OS — Offline-First Restaurant OS for Pakistan',
+    description:
+      'Zero cloud lag during Friday rush. 80mm thermal KOT slips, touch KDS, and 0% commission direct delivery built for Pakistani restaurants.',
+    url: 'https://hfc-orders.vercel.app',
+    siteName: 'HFC OS Pakistan',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'HFC OS — Offline-First Restaurant Order Management System for Pakistan',
+      },
+    ],
+    locale: 'en_PK',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'HFC OS — Offline-First Restaurant OS for Pakistan',
+    description:
+      '80mm thermal KOT printing, touch KDS, and zero-commission delivery management built for Pakistani kitchens.',
+    images: ['/og-image.png'],
+  },
 };
 
 export default function RootLayout({
@@ -38,16 +61,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={plusJakartaSans.variable}>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className={`${plusJakartaSans.className} font-sans antialiased selection:bg-apple-blue selection:text-white`}>
+      <body className="min-h-screen antialiased selection:bg-[#AD96F1] selection:text-[#010102]">
         {children}
         <script
           dangerouslySetInnerHTML={{
