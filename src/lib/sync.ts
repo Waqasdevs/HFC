@@ -56,6 +56,16 @@ export function sanitizeEntityData(entity: string, data: Record<string, any>): R
     if (snake.assigned_rider_id === undefined) snake.assigned_rider_id = null;
     if (snake.assigned_rider_name === undefined) snake.assigned_rider_name = null;
   }
+  // PostgreSQL schema does not have updated_at on stock or shifts
+  if (entity === 'stock' || entity === 'shifts') {
+    delete snake.updated_at;
+  }
+  // PostgreSQL schema has stock_tracking as NOT NULL DEFAULT false
+  if (entity === 'menuItems' || entity === 'menu_items') {
+    if (snake.stock_tracking === undefined || snake.stock_tracking === null) {
+      snake.stock_tracking = false;
+    }
+  }
   return snake;
 }
 
@@ -107,6 +117,20 @@ export function ensureEntityDefaults(entity: string, data: Record<string, any>):
   } else if (entity === 'menuItems' || entity === 'menu_items') {
     if (!data.name) data.name = 'Menu Item';
     if (!data.category_name) data.category_name = 'Burgers & Sandwiches';
+    if (data.stock_tracking === undefined || data.stock_tracking === null) {
+      data.stock_tracking = false;
+    }
+    if (data.is_available === undefined || data.is_available === null) {
+      data.is_available = true;
+    }
+  } else if (entity === 'stock') {
+    if (!data.name) data.name = data.id || 'Stock Item';
+    if (!data.category) data.category = 'Meat';
+    if (!data.unit) data.unit = 'kg';
+    if (data.current_stock === undefined || data.current_stock === null) data.current_stock = 0;
+    if (data.min_threshold === undefined || data.min_threshold === null) data.min_threshold = 0;
+    if (data.cost_per_unit === undefined || data.cost_per_unit === null) data.cost_per_unit = 0;
+    delete data.updated_at;
   }
 }
 
@@ -307,7 +331,6 @@ class SyncManager {
           const snakeStock = localStock.map(s => {
             const sn = sanitizeEntityData('stock', s);
             ensureEntityDefaults('stock', sn);
-            sn.updated_at = new Date().toISOString();
             return sn;
           });
           await supabase.from('stock').upsert(snakeStock);
@@ -502,7 +525,9 @@ class SyncManager {
               // 2. If it's an UPDATE and target has an id, try direct column-level update on Supabase first
               if (item.action === 'UPDATE' && item.data?.id) {
                 const partialSnake = sanitizeEntityData(item.entity, item.data);
-                partialSnake.updated_at = new Date().toISOString();
+                if (item.entity !== 'stock' && item.entity !== 'shifts') {
+                  partialSnake.updated_at = new Date().toISOString();
+                }
                 
                 const { data: updatedRows, error: updateErr } = await supabase
                   .from(table)
@@ -519,7 +544,9 @@ class SyncManager {
               // 3. Fallback to UPSERT with full merged payload and guaranteed column defaults
               const merged = localRecord ? { ...localRecord, ...item.data } : item.data;
               const snakeData = sanitizeEntityData(item.entity, merged);
-              snakeData.updated_at = new Date().toISOString();
+              if (item.entity !== 'stock' && item.entity !== 'shifts') {
+                snakeData.updated_at = new Date().toISOString();
+              }
               ensureEntityDefaults(item.entity, snakeData);
 
               const { error } = await supabase.from(table).upsert(snakeData);

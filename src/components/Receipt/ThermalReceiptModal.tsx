@@ -42,7 +42,9 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
         <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-neutral-50/80 dark:bg-neutral-900/80">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-apple-green" />
-            <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100">Order Placed Successfully</h3>
+            <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100">
+              {order.paymentStatus === 'paid' ? 'Bill Settled & Paid Successfully' : 'Order Placed Successfully'}
+            </h3>
           </div>
           <button
             onClick={() => {
@@ -207,11 +209,22 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
           </button>
 
           <button
+            type="button"
+            onClick={() => {
+              sound.playTap();
+              onClose();
+            }}
+            className="apple-button px-4 py-2.5 rounded-2xl bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 text-xs font-bold transition-all"
+          >
+            Done
+          </button>
+
+          <button
             onClick={handlePrint}
             className="flex-1 apple-button py-3 px-6 rounded-2xl bg-apple-blue hover:bg-apple-blue-hover text-white font-bold text-sm shadow-apple-md transition-all active:scale-[0.98]"
           >
             <Printer className="w-4 h-4 mr-2" />
-            <span>Print 80mm Thermal Receipt</span>
+            <span>Print Receipt</span>
           </button>
         </div>
       </div>

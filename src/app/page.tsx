@@ -358,12 +358,7 @@ export default function Home() {
 
     // Update order in local DB & sync queue
     await db.orders.put(updatedOrder);
-    await syncManager.queueMutation('orders', 'UPDATE', {
-      id: orderId,
-      paymentStatus: 'paid',
-      paymentMethod,
-      status: 'delivered',
-    });
+    await syncManager.queueMutation('orders', 'UPDATE', updatedOrder);
 
     // Free the table
     const targetTable = tableId 

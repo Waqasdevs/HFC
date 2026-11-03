@@ -273,7 +273,10 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
           showErrorModal.toLowerCase().includes('401');
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={() => setShowErrorModal(null)}
+          >
             <div 
               className="w-full max-w-lg max-h-[88vh] bg-white dark:bg-[#1C1C1E] rounded-3xl shadow-apple-modal border border-black/10 dark:border-white/10 flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
