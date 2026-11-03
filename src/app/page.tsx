@@ -1,348 +1,829 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
-import Link from 'next/link';
-import FloatingNav from '@/components/Landing/FloatingNav';
-import TaglineRevealSection from '@/components/Landing/TaglineRevealSection';
-import InteractiveOutputStage from '@/components/Landing/InteractiveOutputStage';
-import MarginAndStagesSection from '@/components/Landing/MarginAndStagesSection';
-import PricingFaqAndLaunch, {
-  LANDING_FAQ_ITEMS,
-} from '@/components/Landing/PricingFaqAndLaunch';
-import {
-  SolarArrowRightBold,
-  SolarBoltBoldDuotone,
-  SolarPrinterBoldDuotone,
-  SolarShieldCheckBoldDuotone,
-} from '@/components/Landing/SolarIcons';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db, seedInitialData } from '@/lib/db';
+import { syncManager } from '@/lib/sync';
+import { sound } from '@/lib/sound';
+import type { 
+  MenuItem, 
+  Category,
+  OrderItem, 
+  OrderType, 
+  PaymentMethod, 
+  PaymentStatus,
+  CustomerInfo, 
+  Order, 
+  Table, 
+  Employee, 
+  OrderStatus, 
+  RestaurantSettings,
+  StockItem 
+} from '@/types';
 
-export default function LandingPage() {
-  const heroBgRef = useRef<HTMLDivElement | null>(null);
-  const heroMidRef = useRef<HTMLDivElement | null>(null);
-  const heroFgRef = useRef<HTMLDivElement | null>(null);
+// Components
+import { AppleSidebar, type NavTab } from '@/components/Navigation/AppleSidebar';
+import { TopStatusBar } from '@/components/Navigation/TopStatusBar';
+import { CategoryPills } from '@/components/POS/CategoryPills';
+import { MenuGrid } from '@/components/POS/MenuGrid';
+import { CartDrawer } from '@/components/POS/CartDrawer';
+import { ItemModifierModal } from '@/components/POS/ItemModifierModal';
+import { LiveOrdersList } from '@/components/POS/LiveOrdersList';
+import { TableGrid } from '@/components/Tables/TableGrid';
+import { DeliveryManager } from '@/components/Delivery/DeliveryManager';
+import { StockManager } from '@/components/Inventory/StockManager';
+import { EmployeeManager } from '@/components/Employees/EmployeeManager';
+import { SalesAnalytics } from '@/components/Reports/SalesAnalytics';
+import { RestaurantSettingsModal } from '@/components/Settings/RestaurantSettingsModal';
+import { PinQuickSwitchModal } from '@/components/Auth/PinQuickSwitchModal';
+import { ThermalReceiptModal } from '@/components/Receipt/ThermalReceiptModal';
+import { InstallModal } from '@/components/Install/InstallModal';
+import { CatalogManager } from '@/components/Catalog/CatalogManager';
 
-  // Transform-based 3-layer scroll parallax with mobile damping & prefers-reduced-motion support
+export default function Home() {
+  // Navigation & View state
+  const [currentTab, setCurrentTab] = useState<NavTab>('pos');
+  const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+
+  // Cart & POS Order state
+  const [cart, setCart] = useState<OrderItem[]>([]);
+  const [orderType, setOrderType] = useState<OrderType>('dine_in');
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
+    name: '',
+    phone: '',
+    address: '',
+    landmark: '',
+  });
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(150);
+  const [discountPercentage, setDiscountPercentage] = useState<number>(0);
+
+  // Modals state
+  const [modifierModalItem, setModifierModalItem] = useState<MenuItem | null>(null);
+  const [activeReceiptOrder, setActiveReceiptOrder] = useState<Order | null>(null);
+  const [isPinSwitchOpen, setIsPinSwitchOpen] = useState<boolean>(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [currentStaff, setCurrentStaff] = useState<Employee | null>(null);
+
+  // Initialize Dexie Seed Data & PWA Install Listener on mount
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
+    seedInitialData();
 
-    let rafId = 0;
-
-    const updateParallax = () => {
-      const scrollY = window.scrollY;
-      if (scrollY > 1400) return;
-
-      const isMobile = window.innerWidth < 768;
-      const mobileFactor = isMobile ? 0.45 : 1;
-
-      if (heroBgRef.current) {
-        const bgOffset = Math.round(scrollY * 0.22 * mobileFactor);
-        heroBgRef.current.style.transform = `translate3d(0, ${bgOffset}px, 0) scale(1.06)`;
-      }
-      if (heroMidRef.current) {
-        const midOffset = Math.round(scrollY * -0.07 * mobileFactor);
-        heroMidRef.current.style.transform = `translate3d(0, ${midOffset}px, 0)`;
-      }
-      if (heroFgRef.current) {
-        const fgOffset = Math.round(scrollY * -0.14 * mobileFactor);
-        heroFgRef.current.style.transform = `translate3d(0, ${fgOffset}px, 0)`;
-      }
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
     };
 
-    const onScroll = () => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(updateParallax);
-    };
-
-    updateParallax();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener('scroll', onScroll);
-    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
-  // Scroll-triggered section reveal via IntersectionObserver (Part B7)
-  useEffect(() => {
-    const elements = document.querySelectorAll('.reveal-section');
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (prefersReducedMotion) {
-      elements.forEach((el) => el.classList.add('is-visible'));
-      return;
+  const handleTriggerInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice?.outcome === 'accepted') {
+        setDeferredPrompt(null);
+        setIsInstallModalOpen(false);
+      }
     }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.12 }
-    );
-
-    elements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
-
-  const softwareJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: 'HFC OS Pakistan',
-    applicationCategory: 'BusinessApplication',
-    operatingSystem: 'Web, Windows, Android, iOS',
-    description:
-      'Offline-first restaurant POS, 80mm thermal KOT routing, Kitchen Display System, and zero-commission direct delivery management built for Pakistani restaurants.',
-    offers: {
-      '@type': 'Offer',
-      price: '4500',
-      priceCurrency: 'PKR',
-    },
   };
 
-  const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: LANDING_FAQ_ITEMS.map((item) => ({
-      '@type': 'Question',
-      name: item.q,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: item.a,
-      },
-    })),
+  // Sync Dark Mode class with <html>
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  // Reactive Dexie Live Queries (0ms latency local IndexedDB)
+  const menuItems = useLiveQuery(() => db.menuItems.toArray()) || [];
+  const categories = useLiveQuery(() => db.categories.orderBy('order').toArray()) || [];
+  const tables = useLiveQuery(() => db.diningTables.toArray()) || [];
+  const stockItems = useLiveQuery(() => db.stock.toArray()) || [];
+  const employees = useLiveQuery(() => db.employees.toArray()) || [];
+  const orders = useLiveQuery(() => db.orders.reverse().toArray()) || [];
+  const currentShift = useLiveQuery(() => db.shifts.get('shift-current')) || null;
+  const dbSettings = useLiveQuery(() => db.settings.get('default'));
+
+  // Default fallback settings
+  const settings: RestaurantSettings = dbSettings || {
+    id: 'default',
+    restaurantName: 'HFC (Hot & Fast Chicken)',
+    tagline: 'Freshly Fried, Crispy & Delicious',
+    address: 'Main Commercial Avenue, Block 4',
+    phone: '+92 300 1234567',
+    currency: 'Rs.',
+    taxRate: 0,
+    defaultDeliveryFee: 150,
+    receiptHeader: '*** THANK YOU FOR DINING WITH HFC ***',
+    receiptFooter: 'For Home Delivery Call: +92 300 1234567\nOrder Online: hfc-orders.vercel.app',
+    soundEnabled: true,
+    autoPrintReceipt: true,
+  };
+
+  // Set default cashier if none active
+  useEffect(() => {
+    if (!currentStaff && employees.length > 0) {
+      const cashier = employees.find(e => e.role === 'cashier') || employees[0];
+      setCurrentStaff(cashier);
+    }
+  }, [employees, currentStaff]);
+
+  // Create quick stock map for fast lookup
+  const stockMap = useMemo(() => {
+    const map: Record<string, StockItem> = {};
+    stockItems.forEach(item => {
+      map[item.id] = item;
+    });
+    return map;
+  }, [stockItems]);
+
+  // Filter menu items by search and category
+  const filteredMenuItems = useMemo(() => {
+    return menuItems.filter(item => {
+      const matchesCategory = selectedCategoryId ? item.categoryId === selectedCategoryId : true;
+      const matchesSearch = searchQuery
+        ? item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.description.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+      return matchesCategory && matchesSearch;
+    });
+  }, [menuItems, selectedCategoryId, searchQuery]);
+
+  // Badge Counts
+  const activeOrders = useMemo(() => {
+    return orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled');
+  }, [orders]);
+
+  const activeDeliveryCount = useMemo(() => {
+    return orders.filter(o => o.type === 'delivery' && o.status !== 'delivered' && o.status !== 'cancelled').length;
+  }, [orders]);
+
+  const lowStockCount = useMemo(() => {
+    return stockItems.filter(s => s.currentStock <= s.minThreshold).length;
+  }, [stockItems]);
+
+  const riders = useMemo(() => {
+    return employees.filter(e => e.role === 'rider');
+  }, [employees]);
+
+  // --- Handlers ---
+  const handleItemClick = (item: MenuItem) => {
+    if (item.modifierGroups && item.modifierGroups.length > 0) {
+      setModifierModalItem(item);
+    } else {
+      handleAddToCart(item, 1, [], '');
+    }
+  };
+
+  const handleAddToCart = (
+    item: MenuItem,
+    quantity: number,
+    selectedModifiers: { groupName: string; choiceName: string; price: number }[],
+    notes: string
+  ) => {
+    const extraPrice = selectedModifiers.reduce((sum, m) => sum + m.price, 0);
+    const effectivePrice = item.price + extraPrice;
+
+    setCart(prev => {
+      // Check if identical item with identical modifiers exists in cart
+      const existingIdx = prev.findIndex(ci => 
+        ci.menuItemId === item.id && 
+        JSON.stringify(ci.selectedModifiers) === JSON.stringify(selectedModifiers) &&
+        ci.notes === notes
+      );
+
+      if (existingIdx >= 0) {
+        const next = [...prev];
+        next[existingIdx].quantity += quantity;
+        return next;
+      } else {
+        const newCartItem: OrderItem = {
+          id: crypto.randomUUID(),
+          menuItemId: item.id,
+          name: item.name,
+          price: effectivePrice,
+          quantity,
+          selectedModifiers,
+          notes,
+        };
+        return [...prev, newCartItem];
+      }
+    });
+  };
+
+  const handleUpdateQuantity = (index: number, delta: number) => {
+    setCart(prev => {
+      const next = [...prev];
+      const updatedQty = next[index].quantity + delta;
+      if (updatedQty <= 0) {
+        return next.filter((_, i) => i !== index);
+      } else {
+        next[index].quantity = updatedQty;
+        return next;
+      }
+    });
+  };
+
+  const handleRemoveCartItem = (index: number) => {
+    setCart(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleClearCart = () => {
+    setCart([]);
+  };
+
+  const handleNewOrder = () => {
+    setCart([]);
+    setSelectedTable(null);
+    setCustomerInfo({ name: '', phone: '', address: '', landmark: '' });
+    setDiscountPercentage(0);
+    setCurrentTab('pos');
+  };
+
+  // --- Complete Order & Commit to Local DB + Sync Queue ---
+  const handleCompleteOrder = async (
+    paymentMethod: PaymentMethod,
+    paymentStatus: PaymentStatus = 'paid'
+  ) => {
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const discountAmount = Math.round((subtotal * discountPercentage) / 100);
+    const taxableAmount = Math.max(0, subtotal - discountAmount);
+    const taxAmount = Math.round((taxableAmount * settings.taxRate) / 100);
+    const effectiveDelivery = orderType === 'delivery' ? deliveryCharge : 0;
+    const grandTotal = taxableAmount + taxAmount + effectiveDelivery;
+
+    // Generate Order Token (e.g. HFC-101, HFC-102...)
+    const allOrders = await db.orders.toArray();
+    const maxTokenNum = allOrders.reduce((max, o) => {
+      const match = o.token?.match(/\d+/);
+      const val = match ? parseInt(match[0], 10) : 0;
+      return val > max ? val : max;
+    }, 100);
+    const token = `HFC-${maxTokenNum + 1}`;
+
+    const newOrder: Order = {
+      id: crypto.randomUUID(),
+      token,
+      type: orderType,
+      status: 'pending',
+      items: [...cart],
+      subtotal,
+      tax: taxAmount,
+      deliveryCharge: effectiveDelivery,
+      discount: discountAmount,
+      total: grandTotal,
+      paymentStatus,
+      paymentMethod,
+      tableNumber: orderType === 'dine_in' ? selectedTable || undefined : undefined,
+      customer: orderType === 'delivery' ? { ...customerInfo } : undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      serverName: currentStaff?.name || 'Haseeb',
+    };
+
+    // 1. Commit Order to Dexie
+    await db.orders.put(newOrder);
+
+    // 2. If Dine-in, mark table as Occupied and lock it with currentOrderId
+    if (orderType === 'dine_in' && selectedTable) {
+      const tbl = tables.find(t => t.number === selectedTable);
+      if (tbl) {
+        const updatedTable: Table = {
+          ...tbl,
+          status: 'occupied',
+          currentOrderId: newOrder.id,
+        };
+        await db.diningTables.update(tbl.id, updatedTable);
+        await syncManager.queueMutation('tables', 'UPDATE', updatedTable);
+      }
+    }
+
+    // 3. Deduct Stock for ordered items with linked stock items
+    for (const item of cart) {
+      const menuItem = menuItems.find(m => m.id === item.menuItemId);
+      if (menuItem?.stockItemId) {
+        const stockRecord = stockMap[menuItem.stockItemId];
+        if (stockRecord) {
+          const newStock = Math.max(0, stockRecord.currentStock - item.quantity);
+          await db.stock.update(stockRecord.id, { currentStock: newStock });
+          await syncManager.queueMutation('stock', 'UPDATE', { id: stockRecord.id, currentStock: newStock });
+        }
+      }
+    }
+
+    // 4. Queue Order Creation in Sync Outbox
+    await syncManager.queueMutation('orders', 'CREATE', newOrder);
+
+    // 5. Lifecycle Action:
+    // For Takeaway & Paid Delivery: open official paid receipt
+    // For Dine-in: order sent to kitchen; table is locked; bill settled when guests finish
+    if (paymentStatus === 'paid') {
+      setActiveReceiptOrder(newOrder);
+    } else if (orderType === 'dine_in') {
+      sound.playSuccess();
+    } else {
+      // Cash on delivery: open receipt for rider slip
+      setActiveReceiptOrder(newOrder);
+    }
+
+    setCart([]);
+    setSelectedTable(null);
+    setCustomerInfo({ name: '', phone: '', address: '', landmark: '' });
+  };
+
+  // --- Settle Bill (Dine-In counter checkout) ---
+  const handleSettleBill = async (
+    orderId: string, 
+    tableId: string, 
+    paymentMethod: PaymentMethod = 'cash'
+  ) => {
+    const order = await db.orders.get(orderId);
+    if (!order) return;
+
+    const updatedOrder: Order = {
+      ...order,
+      paymentStatus: 'paid',
+      paymentMethod,
+      status: 'delivered',
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Update order in local DB & sync queue
+    await db.orders.put(updatedOrder);
+    await syncManager.queueMutation('orders', 'UPDATE', updatedOrder);
+
+    // Free the table
+    const targetTable = tableId 
+      ? await db.diningTables.get(tableId) 
+      : (order.tableNumber ? tables.find(t => t.number === order.tableNumber) : null);
+
+    if (targetTable) {
+      const updatedTable: Table = {
+        ...targetTable,
+        status: 'available',
+        currentOrderId: undefined,
+      };
+      await db.diningTables.update(targetTable.id, updatedTable);
+      await syncManager.queueMutation('tables', 'UPDATE', updatedTable);
+    }
+
+    // Open final paid receipt for printing
+    setActiveReceiptOrder(updatedOrder);
+  };
+
+  // --- Edit Existing Order (before payment settlement) ---
+  const handleEditOrder = async (updatedOrder: Order, previousTableNumber?: string) => {
+    await db.orders.put(updatedOrder);
+
+    // If dining table changed, reallocate tables
+    if (previousTableNumber !== updatedOrder.tableNumber) {
+      if (previousTableNumber) {
+        const oldTbl = tables.find(t => t.number === previousTableNumber);
+        if (oldTbl && oldTbl.currentOrderId === updatedOrder.id) {
+          const updatedOld: Table = {
+            ...oldTbl,
+            status: 'available',
+            currentOrderId: undefined,
+          };
+          await db.diningTables.update(oldTbl.id, updatedOld);
+          await syncManager.queueMutation('tables', 'UPDATE', updatedOld);
+        }
+      }
+      if (updatedOrder.tableNumber && updatedOrder.type === 'dine_in') {
+        const newTbl = tables.find(t => t.number === updatedOrder.tableNumber);
+        if (newTbl) {
+          const updatedNew: Table = {
+            ...newTbl,
+            status: 'occupied',
+            currentOrderId: updatedOrder.id,
+          };
+          await db.diningTables.update(newTbl.id, updatedNew);
+          await syncManager.queueMutation('tables', 'UPDATE', updatedNew);
+        }
+      }
+    }
+
+    // Queue update for Supabase sync
+    await syncManager.queueMutation('orders', 'UPDATE', updatedOrder);
+  };
+
+  // --- Table Layout Management Handlers ---
+  const handleAddTable = async (tableData: Omit<Table, 'id'>) => {
+    const newTable: Table = {
+      ...tableData,
+      id: `tbl-${crypto.randomUUID().slice(0, 8)}`,
+    };
+    await db.diningTables.put(newTable);
+    await syncManager.queueMutation('tables', 'CREATE', newTable);
+  };
+
+  const handleUpdateTableDetails = async (table: Table) => {
+    await db.diningTables.put(table);
+    await syncManager.queueMutation('tables', 'UPDATE', table);
+  };
+
+  const handleDeleteTable = async (tableId: string) => {
+    await db.diningTables.delete(tableId);
+    await syncManager.queueMutation('tables', 'DELETE', { id: tableId });
+  };
+
+  // --- Order Status Lifecycle Transitions ---
+  const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    const order = await db.orders.get(orderId);
+    const updates: Partial<Order> = { 
+      status, 
+      updatedAt: new Date().toISOString() 
+    };
+    
+    // If completing the order, mark as paid as well
+    if (status === 'delivered') {
+      updates.paymentStatus = 'paid';
+    }
+
+    await db.orders.update(orderId, updates);
+    const fullOrder = order ? { ...order, ...updates } : { id: orderId, ...updates };
+    await syncManager.queueMutation('orders', 'UPDATE', fullOrder);
+
+    // If delivered/completed or cancelled, free the table if dine-in
+    if (status === 'delivered' || status === 'cancelled') {
+      const tableNum = order?.tableNumber;
+      if (tableNum) {
+        const tbl = tables.find(t => t.number === tableNum);
+        if (tbl) {
+          const updatedTbl: Table = { ...tbl, status: 'available', currentOrderId: undefined };
+          await db.diningTables.update(tbl.id, updatedTbl);
+          await syncManager.queueMutation('tables', 'UPDATE', updatedTbl);
+        }
+      }
+    }
+  };
+
+  const handleUpdateTableStatus = async (tableId: string, status: Table['status']) => {
+    const existing = tables.find(t => t.id === tableId);
+    if (existing) {
+      const updatedTable: Table = { ...existing, status };
+      await db.diningTables.update(tableId, updatedTable);
+      await syncManager.queueMutation('tables', 'UPDATE', updatedTable);
+    } else {
+      await db.diningTables.update(tableId, { status });
+      await syncManager.queueMutation('tables', 'UPDATE', { id: tableId, status });
+    }
+  };
+
+  const handleAssignRider = async (orderId: string, riderId: string, riderName: string) => {
+    sound.playTap();
+    const existingOrder = orders.find(o => o.id === orderId);
+    const updates = {
+      assignedRiderId: riderId,
+      assignedRiderName: riderName,
+      status: 'out_for_delivery' as const,
+      updatedAt: new Date().toISOString(),
+    };
+    await db.orders.update(orderId, updates);
+    const fullUpdated = existingOrder ? { ...existingOrder, ...updates } : { id: orderId, ...updates };
+    await syncManager.queueMutation('orders', 'UPDATE', fullUpdated);
+  };
+
+  const handleUpdateStock = async (id: string, newStock: number) => {
+    await db.stock.update(id, { currentStock: newStock, lastRestocked: new Date().toISOString() });
+    await syncManager.queueMutation('stock', 'UPDATE', { id, currentStock: newStock });
+  };
+
+  const handleAddStockItem = async (item: Omit<StockItem, 'id' | 'lastRestocked'>) => {
+    const newItem: StockItem = {
+      ...item,
+      id: `stk-${Date.now()}`,
+      lastRestocked: new Date().toISOString(),
+    };
+    await db.stock.put(newItem);
+    await syncManager.queueMutation('stock', 'CREATE', newItem);
+  };
+
+  const handleAddEmployee = async (emp: Omit<Employee, 'id'>) => {
+    const newEmp: Employee = {
+      ...emp,
+      id: `emp-${Date.now()}`,
+    };
+    await db.employees.put(newEmp);
+    await syncManager.queueMutation('employees', 'CREATE', newEmp);
+  };
+
+  const handleClockIn = async (employeeId: string, employeeName: string, role: Employee['role'], openingCash: number) => {
+    const shift = {
+      id: 'shift-current',
+      employeeId,
+      employeeName,
+      role,
+      clockIn: new Date().toISOString(),
+      openingCash,
+      expectedCash: openingCash,
+      notes: `${employeeName} active on shift`
+    };
+    await db.shifts.put(shift);
+    const emp = employees.find(e => e.id === employeeId);
+    if (emp) setCurrentStaff(emp);
+  };
+
+  const handleSwitchStaff = async (emp: Employee) => {
+    setCurrentStaff(emp);
+    await db.shifts.put({
+      id: 'shift-current',
+      employeeId: emp.id,
+      employeeName: emp.name,
+      role: emp.role,
+      clockIn: new Date().toISOString(),
+      openingCash: currentShift?.openingCash || 5000,
+      expectedCash: currentShift?.expectedCash || 5000,
+      notes: `${emp.name} active on duty`
+    });
+  };
+
+  const handleUpdateOpeningCash = async (newOpeningCash: number) => {
+    const shift = await db.shifts.get('shift-current');
+    if (shift) {
+      const prevExpected = shift.expectedCash !== undefined ? shift.expectedCash : shift.openingCash;
+      const salesDuringShift = prevExpected - shift.openingCash;
+      const updated = {
+        ...shift,
+        openingCash: newOpeningCash,
+        expectedCash: newOpeningCash + salesDuringShift
+      };
+      await db.shifts.put(updated);
+      await syncManager.queueMutation('shifts', 'UPDATE', updated);
+    }
+  };
+
+  const handleClockOut = async (closingCash: number, notes: string) => {
+    if (currentShift) {
+      await db.shifts.update(currentShift.id, {
+        clockOut: new Date().toISOString(),
+        closingCash,
+        notes,
+      });
+      alert(`Shift closed. Drawer balanced: ${settings.currency} ${closingCash.toLocaleString()}`);
+    }
+  };
+
+  const handleSaveSettings = async (newSettings: RestaurantSettings) => {
+    await db.settings.put(newSettings);
+    await syncManager.queueMutation('settings', 'UPDATE', newSettings);
+    await syncManager.reconnectCloud();
+  };
+
+  // --- Catalog (Menu & Categories) Handlers ---
+  const handleSaveMenuItem = async (item: MenuItem) => {
+    const existing = await db.menuItems.get(item.id);
+    await db.menuItems.put(item);
+    await syncManager.queueMutation('menuItems', existing ? 'UPDATE' : 'CREATE', item);
+  };
+
+  const handleDeleteMenuItem = async (id: string) => {
+    await db.menuItems.delete(id);
+    await syncManager.queueMutation('menuItems', 'DELETE', { id });
+  };
+
+  const handleToggleItemAvailability = async (id: string, isAvailable: boolean) => {
+    await db.menuItems.update(id, { isAvailable });
+    await syncManager.queueMutation('menuItems', 'UPDATE', { id, isAvailable });
+  };
+
+  const handleSaveCategory = async (category: Category) => {
+    const existing = await db.categories.get(category.id);
+    await db.categories.put(category);
+    await syncManager.queueMutation('categories', existing ? 'UPDATE' : 'CREATE', category);
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    await db.categories.delete(id);
+    await syncManager.queueMutation('categories', 'DELETE', { id });
   };
 
   return (
-    <div className="min-h-screen bg-[#010102] text-[#F5F5F7] selection:bg-[#AD96F1] selection:text-[#010102] overflow-x-hidden">
-      {/* Skip to content link for keyboard accessibility (Part B9) */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:py-2 focus:px-3 focus:rounded-lg focus:bg-[#AD96F1] focus:text-[#010102] caption-1"
-      >
-        Skip to main content
-      </a>
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+    <div className="flex h-screen w-screen overflow-hidden bg-neutral-100 dark:bg-black text-neutral-900 dark:text-neutral-100 font-sans">
+      {/* 1. Apple macOS / iPadOS Frosted Sidebar */}
+      <AppleSidebar
+        currentTab={currentTab}
+        onSelectTab={(tab) => {
+          if (soundEnabled) sound.playTap();
+          setCurrentTab(tab);
+        }}
+        activeOrdersCount={activeOrders.length}
+        activeDeliveryCount={activeDeliveryCount}
+        lowStockCount={lowStockCount}
+        currentStaff={currentStaff}
+        onOpenPinSwitch={() => setIsPinSwitchOpen(true)}
+        onOpenInstall={() => setIsInstallModalOpen(true)}
       />
 
-      <FloatingNav />
+      {/* 2. Main Central Work Area */}
+      <main className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+        {/* Apple Top Status Bar */}
+        <TopStatusBar
+          onNewOrder={handleNewOrder}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          darkMode={darkMode}
+          onToggleDarkMode={() => setDarkMode(!darkMode)}
+          soundEnabled={soundEnabled}
+          onToggleSound={() => setSoundEnabled(!soundEnabled)}
+          onOpenInstall={() => setIsInstallModalOpen(true)}
+          onOpenSettings={() => setCurrentTab('settings')}
+        />
 
-      <main id="main-content">
-        {/* HERO SECTION: Split Asymmetric Stage with 1080p Bespoke Video & 3-Layer Scroll Parallax */}
-        <section
-          aria-labelledby="hero-heading"
-          className="relative min-h-[100svh] pt-28 pb-16 sm:pt-36 sm:pb-24 px-4 sm:px-6 flex items-center overflow-hidden bg-[#010102]"
-        >
-          {/* Parallax Layer 1 (Deep Background): Bespoke 1080p Cinematic Video + Poster Frame */}
-          <div
-            ref={heroBgRef}
-            className="absolute inset-0 pointer-events-none will-change-transform"
-            aria-hidden="true"
-          >
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              poster="/images/landing/hero-poster.jpg"
-              className="w-full h-full object-cover opacity-50"
-            >
-              <source src="/videos/hero-cinematic.mp4" type="video/mp4" />
-            </video>
-            {/* Dark atmospheric masks so Cobalt Black #010102 dominates */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#010102] via-[#010102]/85 to-[#010102]/45" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#010102] via-transparent to-[#010102]/80" />
-          </div>
+        {/* Tab Content Router */}
+        <div className="flex-1 overflow-y-auto min-w-0">
+          {currentTab === 'pos' && (
+            <div className="p-4 sm:p-6 space-y-4 min-w-0 max-w-full">
+              {/* Category Pills Selector */}
+              <CategoryPills
+                categories={categories}
+                selectedCategoryId={selectedCategoryId}
+                onSelectCategory={(id) => {
+                  if (soundEnabled) sound.playTap();
+                  setSelectedCategoryId(id);
+                }}
+                onOpenCatalog={() => setCurrentTab('catalog')}
+              />
 
-          <div className="relative z-10 max-w-[1160px] mx-auto w-full">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
-              {/* Left 7 Columns: Value Proposition and Single Primary CTA */}
-              <div className="lg:col-span-7 flex flex-col items-start">
-                {/* Hero Headline: max-w-[680px] + subtle #FFFFFF to #9B9B9B left-to-right gradient */}
-                <h1
-                  id="hero-heading"
-                  className="heading-1 hero-heading-gradient max-w-[680px] balance-heading not-italic"
-                >
-                  Zero lag dinner rushes.
-                </h1>
-
-                {/* Subheadline: max-w-[680px] */}
-                <p className="body-2 text-[#9B9B9B] max-w-[620px] mt-6 pretty-body not-italic">
-                  HFC OS fires 80mm kitchen tokens in 40 milliseconds, keeps working when PTCL fiber drops, and replaces thirty percent delivery commissions with your own direct rider ledger.
-                </p>
-
-                {/* Single Primary CTA + Live Interactive Demo Action */}
-                <div className="flex flex-wrap items-center gap-3 mt-8">
-                  <a
-                    href="#launch-form"
-                    className="py-2 px-3 rounded-lg bg-[#AD96F1] hover:opacity-95 text-[#010102] body-3 font-semibold inline-flex items-center gap-2.5 transition-transform duration-200 ease-weighted active:scale-[0.97] not-italic"
-                  >
-                    <span>Start Free Counter Setup</span>
-                    <SolarArrowRightBold className="w-5 h-5" />
-                  </a>
-
-                  <Link
-                    href="/pos"
-                    className="py-2 px-3 rounded-lg bg-[#181818] hover:bg-[#1F1F1F] text-[#F5F5F7] body-3 inline-flex items-center gap-2 transition-transform duration-200 ease-weighted active:scale-[0.97] not-italic"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-[#58F6B1]" />
-                    <span>Try Live POS in Browser</span>
-                  </Link>
-                </div>
-
-                {/* Above-the-fold Proof Signal (no raw mono outside code) */}
-                <div className="mt-10 pt-6 flex flex-wrap items-center gap-6 text-[#9B9B9B]">
-                  <div className="flex items-center gap-2">
-                    <SolarPrinterBoldDuotone className="w-5 h-5 text-[#58F6B1]" />
-                    <span className="caption-2 font-medium text-[#F5F5F7] not-italic">
-                      80mm ESC/POS Printing
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <SolarBoltBoldDuotone className="w-5 h-5 text-[#AD96F1]" />
-                    <span className="caption-2 font-medium text-[#F5F5F7] not-italic">
-                      100% Local IndexedDB
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <SolarShieldCheckBoldDuotone className="w-5 h-5 text-[#58F6B1]" />
-                    <span className="caption-2 font-medium text-[#F5F5F7] not-italic">
-                      PKR &amp; FBR GST Ready
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right 5 Columns: Parallax Layer 2 & 3 Live Counter Hardware & KOT Stage */}
-              <div className="lg:col-span-5 relative">
-                {/* Parallax Layer 2 (Midground): Live Counter Terminal Card */}
-                <div
-                  ref={heroMidRef}
-                  className="rounded-2xl bg-[#181818] p-2 will-change-transform"
-                >
-                  <div className="rounded-lg bg-[#010102] p-5">
-                    <div className="flex items-center justify-between pb-4 mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#58F6B1]" />
-                        <span className="caption-2 text-[#F5F5F7] font-medium not-italic">
-                          Gulberg Counter 01 • Offline Safe
-                        </span>
-                      </div>
-                      <span className="py-0.5 px-2 rounded bg-[#181818] text-sm text-[#AD96F1] font-medium not-italic">
-                        Shift Open
-                      </span>
-                    </div>
-
-                    <div className="space-y-2.5 text-sm">
-                      <div className="rounded-lg bg-[#181818] p-3 flex items-center justify-between">
-                        <div>
-                          <div className="text-[#F5F5F7] font-semibold not-italic">
-                            2x Zinger Mighty Deal
-                          </div>
-                          <div className="text-[#9B9B9B] text-sm not-italic">
-                            Fry Pass • Extra Spicy Mayo
-                          </div>
-                        </div>
-                        <span className="text-[#58F6B1] font-medium not-italic">Rs. 1,580</span>
-                      </div>
-
-                      <div className="rounded-lg bg-[#181818] p-3 flex items-center justify-between">
-                        <div>
-                          <div className="text-[#F5F5F7] font-semibold not-italic">
-                            1x Chicken Karahi Full
-                          </div>
-                          <div className="text-[#9B9B9B] text-sm not-italic">
-                            Tandoor &amp; Wok • Desi Ghee
-                          </div>
-                        </div>
-                        <span className="text-[#58F6B1] font-medium not-italic">Rs. 2,450</span>
-                      </div>
-
-                      <div className="rounded-lg bg-[#181818] p-3 flex items-center justify-between">
-                        <div>
-                          <div className="text-[#F5F5F7] font-semibold not-italic">
-                            4x Garlic Roghni Naan
-                          </div>
-                          <div className="text-[#9B9B9B] text-sm not-italic">
-                            Clay Oven • Butter Brushed
-                          </div>
-                        </div>
-                        <span className="text-[#58F6B1] font-medium not-italic">Rs. 480</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 pt-4 flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-[#9B9B9B] not-italic">
-                          Net Payable (Incl. 5% GST)
-                        </div>
-                        <div className="heading-4 text-[#F5F5F7] not-italic">
-                          Rs. 4,736
-                        </div>
-                      </div>
-                      <Link
-                        href="/pos"
-                        className="py-2 px-3 rounded-lg bg-[#58F6B1] text-[#010102] caption-1 font-semibold not-italic"
-                      >
-                        Fire KOT #418
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Parallax Layer 3 (Foreground Depth): Floating Kitchen Telemetry Pill */}
-                <div
-                  ref={heroFgRef}
-                  className="mt-4 sm:-mt-6 sm:ml-8 rounded-2xl bg-[#1F1F1F] p-2 will-change-transform"
-                >
-                  <div className="rounded-lg bg-[#010102] p-4 flex items-center justify-between gap-4">
-                    <div>
-                      <div className="caption-2 text-[#AD96F1] font-medium not-italic">
-                        Thermal Slip Dispatched
-                      </div>
-                      <div className="caption-2 text-[#9B9B9B] mt-0.5 not-italic">
-                        Tandoor + Fry Station printed in 38ms
-                      </div>
-                    </div>
-                    <span className="py-1 px-2.5 rounded bg-[#181818] caption-2 text-[#58F6B1] font-medium shrink-0 not-italic">
-                      0% Commission
-                    </span>
-                  </div>
-                </div>
-              </div>
+              {/* Menu Item Grid */}
+              <MenuGrid
+                items={filteredMenuItems}
+                stockMap={stockMap}
+                currency={settings.currency}
+                onItemClick={handleItemClick}
+              />
             </div>
-          </div>
-        </section>
+          )}
 
-        {/* Mandatory Scroll-Synced Word-by-Word Tagline Reveal Section (Part B11) */}
-        <TaglineRevealSection />
+          {currentTab === 'catalog' && (
+            <CatalogManager
+              menuItems={menuItems}
+              categories={categories}
+              stockItems={stockItems}
+              currency={settings.currency}
+              onSaveMenuItem={handleSaveMenuItem}
+              onDeleteMenuItem={handleDeleteMenuItem}
+              onToggleItemAvailability={handleToggleItemAvailability}
+              onSaveCategory={handleSaveCategory}
+              onDeleteCategory={handleDeleteCategory}
+            />
+          )}
 
-        {/* Interactive 4-Output Counter Architecture Section */}
-        <div className="reveal-section">
-          <InteractiveOutputStage />
-        </div>
+          {currentTab === 'orders' && (
+            <LiveOrdersList
+              orders={orders}
+              tables={tables}
+              currency={settings.currency}
+              menuItems={menuItems}
+              taxRate={settings.taxRate}
+              deliveryFee={settings.defaultDeliveryFee}
+              onUpdateStatus={handleUpdateOrderStatus}
+              onViewReceipt={(order) => setActiveReceiptOrder(order)}
+              onSettleBill={handleSettleBill}
+              onSaveOrder={handleEditOrder}
+            />
+          )}
 
-        {/* Problem-to-Solution + PKR Margin Simulator + 4-Stage Shift Flow */}
-        <div className="reveal-section">
-          <MarginAndStagesSection />
-        </div>
+          {currentTab === 'tables' && (
+            <TableGrid
+              tables={tables}
+              activeOrders={activeOrders}
+              currency={settings.currency}
+              onSelectTableForOrder={(tableNumber) => {
+                setSelectedTable(tableNumber);
+                setOrderType('dine_in');
+                setCurrentTab('pos');
+              }}
+              onUpdateTableStatus={handleUpdateTableStatus}
+              onViewOrderReceipt={(order) => setActiveReceiptOrder(order)}
+              onAddTable={handleAddTable}
+              onUpdateTableDetails={handleUpdateTableDetails}
+              onDeleteTable={handleDeleteTable}
+              onSettleBill={handleSettleBill}
+              onUpdateOrderStatus={handleUpdateOrderStatus}
+            />
+          )}
 
-        {/* Proof, Two-Field PKR Pricing, Run-In FAQ, and Live Workspace Provisioner */}
-        <div className="reveal-section">
-          <PricingFaqAndLaunch />
+          {currentTab === 'delivery' && (
+            <DeliveryManager
+              orders={orders}
+              riders={riders}
+              currency={settings.currency}
+              onAssignRider={handleAssignRider}
+              onUpdateStatus={handleUpdateOrderStatus}
+            />
+          )}
+
+          {currentTab === 'inventory' && (
+            <StockManager
+              stockItems={stockItems}
+              currency={settings.currency}
+              onUpdateStock={handleUpdateStock}
+              onAddStockItem={handleAddStockItem}
+            />
+          )}
+
+          {currentTab === 'employees' && (
+            <EmployeeManager
+              employees={employees}
+              currentShift={currentShift}
+              orders={orders}
+              currency={settings.currency}
+              onAddEmployee={handleAddEmployee}
+              onClockIn={handleClockIn}
+              onClockOut={handleClockOut}
+              onUpdateOpeningCash={handleUpdateOpeningCash}
+            />
+          )}
+
+          {currentTab === 'reports' && (
+            <SalesAnalytics
+              orders={orders}
+              currency={settings.currency}
+              onViewReceipt={(order) => setActiveReceiptOrder(order)}
+            />
+          )}
+
+          {currentTab === 'settings' && (
+            <RestaurantSettingsModal
+              settings={settings}
+              onSaveSettings={handleSaveSettings}
+            />
+          )}
         </div>
       </main>
+
+      {/* 3. POS Order Cart Drawer (Visible when on POS tab) */}
+      {currentTab === 'pos' && (
+        <CartDrawer
+          cart={cart}
+          orderType={orderType}
+          onChangeOrderType={setOrderType}
+          selectedTable={selectedTable}
+          onSelectTable={setSelectedTable}
+          availableTables={tables}
+          customerInfo={customerInfo}
+          onChangeCustomerInfo={setCustomerInfo}
+          deliveryCharge={deliveryCharge}
+          onChangeDeliveryCharge={setDeliveryCharge}
+          discountPercentage={discountPercentage}
+          onChangeDiscount={setDiscountPercentage}
+          currency={settings.currency}
+          taxRate={settings.taxRate}
+          currentStaff={currentStaff}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemoveItem={handleRemoveCartItem}
+          onClearCart={handleClearCart}
+          onCompleteOrder={handleCompleteOrder}
+        />
+      )}
+
+      {/* --- Modals & Sheets --- */}
+      {/* A. Item Modifiers Sheet */}
+      {modifierModalItem && (
+        <ItemModifierModal
+          item={modifierModalItem}
+          currency={settings.currency}
+          onClose={() => setModifierModalItem(null)}
+          onAddToCart={handleAddToCart}
+        />
+      )}
+
+      {/* B. Thermal 80mm Printable Receipt Modal */}
+      {activeReceiptOrder && (
+        <ThermalReceiptModal
+          order={activeReceiptOrder}
+          settings={settings}
+          onClose={() => setActiveReceiptOrder(null)}
+        />
+      )}
+
+      {/* C. Brother Shift Handover Modal */}
+      {isPinSwitchOpen && (
+        <PinQuickSwitchModal
+          employees={employees}
+          currentStaff={currentStaff}
+          onSwitchStaff={handleSwitchStaff}
+          onClose={() => setIsPinSwitchOpen(false)}
+        />
+      )}
+
+      {/* D. Desktop PWA Download / Installation Guidance Modal */}
+      {isInstallModalOpen && (
+        <InstallModal
+          onClose={() => setIsInstallModalOpen(false)}
+          deferredPrompt={deferredPrompt}
+          onTriggerInstall={handleTriggerInstall}
+        />
+      )}
     </div>
   );
 }
