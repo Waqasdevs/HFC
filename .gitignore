@@ -33,3 +33,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scratch & test artifacts
+scratch/
+public/videos/
+.agents/
+.taste-skill/
