@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, seedInitialData } from '@/lib/db';
+import { HFC_MENU_ITEMS } from '@/lib/initialCatalog';
 import { syncManager } from '@/lib/sync';
 import { sound } from '@/lib/sound';
 import type { 
@@ -146,9 +147,26 @@ export default function Home() {
     return map;
   }, [stockItems]);
 
+    // Ensure every item has its itemNumber from official catalog or sequential fallback
+  const enrichedMenuItems = useMemo(() => {
+    const catalogMap = new Map<string, number>();
+    HFC_MENU_ITEMS.forEach(i => {
+      if (i.itemNumber) catalogMap.set(i.id, i.itemNumber);
+    });
+
+    let nextNum = 126;
+    return menuItems.map(item => {
+      if (item.itemNumber) return item;
+      if (catalogMap.has(item.id)) {
+        return { ...item, itemNumber: catalogMap.get(item.id) };
+      }
+      return { ...item, itemNumber: nextNum++ };
+    });
+  }, [menuItems]);
+
   // Filter menu items by search and category
   const filteredMenuItems = useMemo(() => {
-    return menuItems.filter(item => {
+    return enrichedMenuItems.filter(item => {
       const matchesCategory = selectedCategoryId ? item.categoryId === selectedCategoryId : true;
       const cleanSearch = searchQuery.trim().replace(/^#+/, '');
       const matchesSearch = cleanSearch
@@ -159,7 +177,7 @@ export default function Home() {
         : true;
       return matchesCategory && matchesSearch;
     });
-  }, [menuItems, selectedCategoryId, searchQuery]);
+  }, [enrichedMenuItems, selectedCategoryId, searchQuery]);
 
   // Badge Counts
   const activeOrders = useMemo(() => {
@@ -648,7 +666,7 @@ export default function Home() {
             <div className="p-4 sm:p-6 space-y-4 min-w-0 max-w-full">
               {/* Fast Item Number & Numpad Keyer */}
               <QuickItemKeyer
-                menuItems={menuItems}
+                menuItems={enrichedMenuItems}
                 onAddItem={(item, qty) => handleItemClick(item, qty)}
                 currency={settings.currency}
               />
@@ -676,7 +694,7 @@ export default function Home() {
 
           {currentTab === 'catalog' && (
             <CatalogManager
-              menuItems={menuItems}
+              menuItems={enrichedMenuItems}
               categories={categories}
               stockItems={stockItems}
               currency={settings.currency}

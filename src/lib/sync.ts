@@ -307,7 +307,22 @@ class SyncManager {
       const { data: cloudItems } = await supabase.from('menu_items').select('*');
       const hasHfcDeal1 = cloudItems?.some(i => i.id === 'deal-1');
       if (cloudItems && cloudItems.length >= 20 && hasHfcDeal1) {
-        const camelItems = cloudItems.map(toCamelCase);
+        const { HFC_MENU_ITEMS } = await import('@/lib/initialCatalog');
+        const catalogNumMap = new Map<string, number>();
+        HFC_MENU_ITEMS.forEach(m => {
+          if (m.itemNumber) catalogNumMap.set(m.id, m.itemNumber);
+        });
+
+        let nextNum = 126;
+        const camelItems = cloudItems.map(ci => {
+          const item: any = toCamelCase(ci);
+          if (!item.itemNumber && catalogNumMap.has(item.id)) {
+            item.itemNumber = catalogNumMap.get(item.id);
+          } else if (!item.itemNumber) {
+            item.itemNumber = nextNum++;
+          }
+          return item;
+        });
         await db.menuItems.bulkPut(camelItems as any);
       } else {
         const localItems = await db.menuItems.toArray();

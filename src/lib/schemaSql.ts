@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
 -- 7. Menu Items Catalog
 CREATE TABLE IF NOT EXISTS public.menu_items (
     id TEXT PRIMARY KEY,
+    item_number INT,
     name TEXT NOT NULL,
     description TEXT,
     price NUMERIC(10, 2) NOT NULL DEFAULT 0,
@@ -119,6 +120,7 @@ CREATE TABLE IF NOT EXISTS public.menu_items (
     stock_item_id TEXT,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now())
 );
+ALTER TABLE public.menu_items ADD COLUMN IF NOT EXISTS item_number INT;
 
 -- 8. Restaurant Settings
 CREATE TABLE IF NOT EXISTS public.settings (
