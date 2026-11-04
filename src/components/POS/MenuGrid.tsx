@@ -51,11 +51,18 @@ export const MenuGrid: React.FC<MenuGridProps> = ({
                 : 'hover:-translate-y-0.5 active:scale-[0.98]'
             }`}
           >
-            {/* Stock status indicator pill */}
+            {/* Stock status indicator pill & Item Number Badge */}
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
-                {item.categoryName}
-              </span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                {item.itemNumber ? (
+                  <span className="font-mono text-[11px] font-black px-2 py-0.5 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-2xs shrink-0 tracking-tight">
+                    #{item.itemNumber}
+                  </span>
+                ) : null}
+                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 truncate">
+                  {item.categoryName}
+                </span>
+              </div>
               {isOutOfStock ? (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-apple-red/10 text-apple-red flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />

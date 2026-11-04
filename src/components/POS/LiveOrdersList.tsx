@@ -352,14 +352,15 @@ export const LiveOrdersList: React.FC<LiveOrdersListProps> = ({
                         {order.token}
                       </span>
 
-                      {/* Quick Edit Icon */}
+                      {/* Quick Edit Badge & Trigger */}
                       {order.paymentStatus === 'pending' && onSaveOrder && (
                         <button
                           onClick={() => handleOpenEditOrder(order)}
-                          className="p-1 rounded-lg text-neutral-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                          title="Edit Order Items & Details"
+                          className="px-2 py-0.5 rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-all flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                          title="Edit items, change quantities or details before bill settlement"
                         >
-                          <Pencil className="w-3.5 h-3.5" />
+                          <Pencil className="w-3 h-3" />
+                          <span>Edit</span>
                         </button>
                       )}
                       
@@ -479,7 +480,7 @@ export const LiveOrdersList: React.FC<LiveOrdersListProps> = ({
                     <span>{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                     {/* 1. Dine-In: Mark Served */}
                     {order.type === 'dine_in' && order.status !== 'served' && !isCompleted && (
                       <button
@@ -519,18 +520,6 @@ export const LiveOrdersList: React.FC<LiveOrdersListProps> = ({
                       >
                         <ChefHat className="w-3.5 h-3.5" />
                         <span>KOT Slip</span>
-                      </button>
-                    )}
-
-                    {/* 4. Edit Order Button (Prior to Payment Settlement) */}
-                    {order.paymentStatus === 'pending' && onSaveOrder && (
-                      <button
-                        onClick={() => handleOpenEditOrder(order)}
-                        className="apple-button px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-xs font-bold flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-all shadow-xs"
-                        title="Edit items, add extra items, change quantities or details before bill settlement"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                        <span>Edit Order</span>
                       </button>
                     )}
 

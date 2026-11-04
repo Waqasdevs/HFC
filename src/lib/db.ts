@@ -36,6 +36,9 @@ export class HFCDatabase extends Dexie {
       settings: 'id',
       syncQueue: 'id, entity, action, clientTimestamp, synced'
     });
+    this.version(2).stores({
+      menuItems: 'id, categoryId, name, isAvailable, itemNumber'
+    });
   }
 }
 
@@ -76,6 +79,27 @@ export async function seedInitialData() {
       } catch (err) {
         console.warn('Catalog cloud sync notice:', err);
       }
+    }
+
+    // Migration: Ensure all items have a sequential itemNumber (1 to 135+)
+    const allDbItems = await db.menuItems.toArray();
+    const needsNumbering = allDbItems.some(i => !i.itemNumber) || (allDbItems.length > 0 && !allDbItems.find(i => i.id === 'deal-1')?.itemNumber);
+    if (needsNumbering && allDbItems.length > 0) {
+      const catalogNumMap = new Map<string, number>();
+      HFC_MENU_ITEMS.forEach(item => {
+        if (item.itemNumber) catalogNumMap.set(item.id, item.itemNumber);
+      });
+
+      let nextNum = 126;
+      const updated = allDbItems.map(item => {
+        if (catalogNumMap.has(item.id)) {
+          return { ...item, itemNumber: catalogNumMap.get(item.id) };
+        } else if (!item.itemNumber) {
+          return { ...item, itemNumber: nextNum++ };
+        }
+        return item;
+      });
+      await db.menuItems.bulkPut(updated);
     }
 
     // Migration: Ensure the 3 brothers (Haseeb, Aliyan, Shaban) are the employee profiles

@@ -82,6 +82,7 @@ export interface Table {
 
 export interface MenuItem {
   id: string;
+  itemNumber?: number;
   name: string;
   description: string;
   price: number;

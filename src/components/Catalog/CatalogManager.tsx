@@ -476,9 +476,16 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                 {/* Top Badge & Availability Toggle */}
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
-                      {item.categoryName}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {item.itemNumber && (
+                        <span className="font-mono text-[10px] font-black px-1.5 py-0.5 rounded bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-2xs">
+                          #{item.itemNumber}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
+                        {item.categoryName}
+                      </span>
+                    </div>
 
                     {/* Quick 1-Click Availability Switch */}
                     <button

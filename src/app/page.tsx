@@ -39,6 +39,7 @@ import { PinQuickSwitchModal } from '@/components/Auth/PinQuickSwitchModal';
 import { ThermalReceiptModal } from '@/components/Receipt/ThermalReceiptModal';
 import { InstallModal } from '@/components/Install/InstallModal';
 import { CatalogManager } from '@/components/Catalog/CatalogManager';
+import { QuickItemKeyer } from '@/components/POS/QuickItemKeyer';
 
 export default function Home() {
   // Navigation & View state
@@ -149,9 +150,12 @@ export default function Home() {
   const filteredMenuItems = useMemo(() => {
     return menuItems.filter(item => {
       const matchesCategory = selectedCategoryId ? item.categoryId === selectedCategoryId : true;
-      const matchesSearch = searchQuery
-        ? item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.description.toLowerCase().includes(searchQuery.toLowerCase())
+      const cleanSearch = searchQuery.trim().replace(/^#+/, '');
+      const matchesSearch = cleanSearch
+        ? item.name.toLowerCase().includes(cleanSearch.toLowerCase()) ||
+          item.description.toLowerCase().includes(cleanSearch.toLowerCase()) ||
+          (item.itemNumber && String(item.itemNumber) === cleanSearch) ||
+          (item.itemNumber && String(item.itemNumber).startsWith(cleanSearch))
         : true;
       return matchesCategory && matchesSearch;
     });
@@ -175,11 +179,11 @@ export default function Home() {
   }, [employees]);
 
   // --- Handlers ---
-  const handleItemClick = (item: MenuItem) => {
+  const handleItemClick = (item: MenuItem, initialQty: number = 1) => {
     if (item.modifierGroups && item.modifierGroups.length > 0) {
       setModifierModalItem(item);
     } else {
-      handleAddToCart(item, 1, [], '');
+      handleAddToCart(item, initialQty, [], '');
     }
   };
 
@@ -642,6 +646,13 @@ export default function Home() {
         <div className="flex-1 overflow-y-auto min-w-0">
           {currentTab === 'pos' && (
             <div className="p-4 sm:p-6 space-y-4 min-w-0 max-w-full">
+              {/* Fast Item Number & Numpad Keyer */}
+              <QuickItemKeyer
+                menuItems={menuItems}
+                onAddItem={(item, qty) => handleItemClick(item, qty)}
+                currency={settings.currency}
+              />
+
               {/* Category Pills Selector */}
               <CategoryPills
                 categories={categories}

@@ -92,6 +92,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'deal-1',
+    itemNumber: 1,
     name: 'Deal 1 - Single Zinger Combo',
     description: '1x Zinger Burger, 1x Regular Drink, 1x Fries',
     price: 400,
@@ -102,6 +103,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'deal-2',
+    itemNumber: 2,
     name: 'Deal 2 - Zinger & Shawarma Duo',
     description: '1x Zinger Burger, 1x Chicken Shawarma, Half Fries, Half Drink (500ml)',
     price: 650,
@@ -112,6 +114,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'deal-3',
+    itemNumber: 3,
     name: 'Deal 3 - Pizza & Zinger Feast',
     description: '1x Small Pizza, 2x Zinger Burgers, Full Fries, 1.5L Drink',
     price: 1599,
@@ -122,6 +125,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'deal-4',
+    itemNumber: 4,
     name: 'Deal 4 - Big Crunch Family Deal',
     description: '1x Large Pizza, 4x Zinger Burgers, Full Fries, 1.5L Drink',
     price: 2999,
@@ -132,6 +136,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'deal-5',
+    itemNumber: 5,
     name: 'Deal 5 - Double Large & Wings Party',
     description: '2x Large Pizzas, 12x Hot Wings, Full Fries, 1.5L Drink',
     price: 3699,
@@ -142,6 +147,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'deal-6',
+    itemNumber: 6,
     name: 'Deal 6 - Shawarma, Wings & Nuggets',
     description: '4x Chicken Shawarmas, 6x Nuggets, 6x Wings, Full Fries, 1.5L Drink',
     price: 1599,
@@ -152,6 +158,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'deal-7',
+    itemNumber: 7,
     name: 'Deal 7 - HFC Mega Family Feast',
     description: '2x Family Pizzas, 2x Zinger Burgers, 2x Chicken Leg Pieces, Full Fries, 12x Hot Wings, 2x 1L Drinks',
     price: 5499,
@@ -162,6 +169,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'deal-8',
+    itemNumber: 8,
     name: 'Deal 8 - Double Medium & Zinger',
     description: '2x Medium Pizzas, 2x Zinger Burgers, 2x Shawarmas, 1x Full Fries, 1x 1.5L Drink',
     price: 3199,
@@ -172,6 +180,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'deal-9',
+    itemNumber: 9,
     name: 'Deal 9 - Desi Karahi Dawat Deal',
     description: '1 Kg Chicken Karahi, 2 Pcs Tikka Boti, 2 Pcs Seekh Kabab, 10x Roti, Fresh Salad, 1+1 Raita, 1.5L Drink',
     price: 2499,
@@ -182,6 +191,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'deal-10',
+    itemNumber: 10,
     name: 'Deal 10 - Student Special Deal',
     description: '1x Student Pizza (5"), 2x Zinger Burgers, 1x Half Drink, 1x Half Fries',
     price: 1299,
@@ -196,6 +206,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'piz-tikka',
+    itemNumber: 11,
     name: 'Chicken Tikka Pizza',
     description: 'Traditional spicy tikka chunks, onions, mozzarella cheese & pizza sauce.',
     price: 600,
@@ -206,6 +217,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-fajita',
+    itemNumber: 12,
     name: 'Chicken Fajita Pizza',
     description: 'Mexican style chicken fajita, capsicum, onions, black olives & cheese.',
     price: 600,
@@ -216,6 +228,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-bbq',
+    itemNumber: 13,
     name: 'B.B.Q Pizza',
     description: 'Smoky BBQ chicken, bell peppers, onions & rich BBQ sauce.',
     price: 600,
@@ -226,6 +239,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-hot-spicy',
+    itemNumber: 14,
     name: 'Hot & Spicy Pizza',
     description: 'Spicy chicken, green chilies, jalapeños, onions & hot sauce.',
     price: 600,
@@ -236,6 +250,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-achari',
+    itemNumber: 15,
     name: 'Achari Pizza',
     description: 'Tangy pickled achari chicken chunks, onions & mozzarella.',
     price: 600,
@@ -246,6 +261,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-supreme',
+    itemNumber: 16,
     name: 'Chicken Supreme Pizza',
     description: 'Tender chicken, sausages, bell peppers, mushrooms, onions & olives.',
     price: 600,
@@ -256,6 +272,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-veg',
+    itemNumber: 17,
     name: 'Vegetable Pizza',
     description: 'Fresh mushrooms, bell peppers, onions, tomatoes & black olives.',
     price: 550,
@@ -266,6 +283,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-cheese',
+    itemNumber: 18,
     name: 'Cheese Lover Pizza',
     description: 'Double layer of melted mozzarella & cheddar cheese with herb seasoning.',
     price: 550,
@@ -276,6 +294,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-malai-boti',
+    itemNumber: 19,
     name: 'Malai Boti Pizza',
     description: 'Creamy tender malai boti pieces, white sauce, onions & mozzarella.',
     price: 700,
@@ -286,6 +305,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-lazania',
+    itemNumber: 20,
     name: 'Lazania Pizza',
     description: 'Layered lasagna meat sauce, pasta sheets, cheese & Italian herbs.',
     price: 700,
@@ -296,6 +316,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-crown-crust',
+    itemNumber: 21,
     name: 'Crown Crust Pizza',
     description: 'Crown folded crust pockets filled with chicken kababs & creamy cheese.',
     price: 700,
@@ -306,6 +327,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-kabab-crust',
+    itemNumber: 22,
     name: 'Kabab Crust Pizza',
     description: 'Stuffed chicken seekh kabab wrapped right around the outer crust.',
     price: 700,
@@ -316,6 +338,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-stuffed-crust',
+    itemNumber: 23,
     name: 'Stuff Crust Pizza',
     description: 'Crust ring filled with rich melted cheddar and mozzarella cheese.',
     price: 700,
@@ -326,6 +349,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-new-york',
+    itemNumber: 24,
     name: 'New York Pizza',
     description: 'Thin crisp foldable crust, premium chicken cuts, oregano & extra cheese.',
     price: 700,
@@ -336,6 +360,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-hfc-special',
+    itemNumber: 25,
     name: 'HFC Special Pizza',
     description: "Chef's signature loaded topping with chicken, sausages, olives & special sauces.",
     price: 700,
@@ -346,6 +371,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-four-flavours',
+    itemNumber: 26,
     name: 'Four Flavours Pizza',
     description: '4 quadrants in one pizza: Tikka + Kabab Crust + Crown Crust + BBQ.',
     price: 700,
@@ -356,6 +382,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'piz-student',
+    itemNumber: 27,
     name: 'Student Pizza (5 inch)',
     description: 'Personal 5-inch crispy pan pizza loaded with chicken & cheese.',
     price: 500,
@@ -369,6 +396,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'brg-zinger',
+    itemNumber: 28,
     name: 'Zinger Burger',
     description: 'Crispy coated chicken breast fillet with fresh lettuce and signature sauce.',
     price: 300,
@@ -378,6 +406,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'brg-zinger-cheese',
+    itemNumber: 29,
     name: 'Zinger Cheese Burger',
     description: 'Crispy fillet with melted cheddar cheese slice & lettuce.',
     price: 350,
@@ -387,6 +416,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'brg-chicken-patty',
+    itemNumber: 30,
     name: 'Chicken Patty Burger',
     description: 'Minced spiced chicken patty with mayo and lettuce.',
     price: 250,
@@ -396,6 +426,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'brg-grill',
+    itemNumber: 31,
     name: 'Grill Burger',
     description: 'Flame-grilled chicken fillet with smoky seasoning and crisp veggies.',
     price: 350,
@@ -405,6 +436,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'brg-tower',
+    itemNumber: 32,
     name: 'Tower Burger',
     description: 'Crispy zinger fillet stacked with hash brown and double layer dressing.',
     price: 450,
@@ -414,6 +446,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'brg-chapli',
+    itemNumber: 33,
     name: 'Chapli Burger',
     description: 'Traditional spiced Peshawari style chapli kabab patty.',
     price: 250,
@@ -423,6 +456,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'brg-fillet',
+    itemNumber: 34,
     name: 'Fillet Burger',
     description: 'Tender boneless chicken fillet lightly seasoned and grilled.',
     price: 350,
@@ -432,6 +466,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'brg-special',
+    itemNumber: 35,
     name: 'HFC Special Burger',
     description: 'Supreme loaded burger with double chicken, egg & cheese.',
     price: 500,
@@ -441,6 +476,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'brg-egg-shami',
+    itemNumber: 36,
     name: 'Egg Shami Burger',
     description: 'Traditional desi street burger with shami kabab & fried egg.',
     price: 150,
@@ -450,6 +486,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'brg-double-egg-shami',
+    itemNumber: 37,
     name: 'Double Egg Shami Burger',
     description: 'Desi shami kabab with double fried egg.',
     price: 200,
@@ -459,6 +496,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'brg-pizza-burger',
+    itemNumber: 38,
     name: 'Pizza Burger',
     description: 'Fusion burger stuffed with pizza sauce, mozzarella cheese, chicken & herbs.',
     price: 450,
@@ -468,6 +506,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'snd-club',
+    itemNumber: 39,
     name: 'Club Sandwich',
     description: 'Triple decker toasted sandwich with chicken, boiled egg, cucumber & cheese.',
     price: 350,
@@ -477,6 +516,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'snd-regular',
+    itemNumber: 40,
     name: 'Regular Chicken Sandwich',
     description: 'Toasted shredded chicken sandwich with creamy mayo.',
     price: 300,
@@ -486,6 +526,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'snd-special',
+    itemNumber: 41,
     name: 'HFC Special Sandwich',
     description: 'Loaded triple layer club sandwich with fries.',
     price: 450,
@@ -499,6 +540,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'rol-zinger-paratha',
+    itemNumber: 42,
     name: 'Zinger Paratha Roll',
     description: 'Crispy zinger strips rolled in crispy fried paratha with garlic mayo.',
     price: 300,
@@ -508,6 +550,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'rol-zinger-cheese',
+    itemNumber: 43,
     name: 'Zinger Cheese Roll',
     description: 'Zinger paratha roll loaded with extra cheddar cheese.',
     price: 350,
@@ -517,6 +560,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'rol-twister',
+    itemNumber: 44,
     name: 'Twister Roll',
     description: 'Tortilla wrapped crispy chicken with diced tomatoes & mayo.',
     price: 300,
@@ -526,6 +570,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'rol-kabab',
+    itemNumber: 45,
     name: 'Kabab Roll',
     description: 'Grilled seekh kabab rolled in paratha with mint chutney and onions.',
     price: 250,
@@ -535,6 +580,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'rol-chicken-shawarma',
+    itemNumber: 46,
     name: 'Chicken Shawarma Large',
     description: 'Large pita bread stuffed with seasoned shaved chicken, pickles & tahini.',
     price: 200,
@@ -544,6 +590,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'rol-zinger-shawarma',
+    itemNumber: 47,
     name: 'Zinger Shawarma Roll',
     description: 'Pita wrap stuffed with crunchy zinger strips and garlic sauce.',
     price: 300,
@@ -557,6 +604,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'fr-french',
+    itemNumber: 48,
     name: 'French Fries',
     description: 'Golden salted crispy fries.',
     price: 150,
@@ -577,6 +625,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'fr-masala',
+    itemNumber: 49,
     name: 'Masala Fries',
     description: 'Crispy fries tossed with spicy chaat masala.',
     price: 250,
@@ -586,6 +635,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'fr-loaded',
+    itemNumber: 50,
     name: 'Loaded Fries',
     description: 'Sharing box of fries topped with chicken chunks, cheese sauce & jalapenos.',
     price: 600,
@@ -595,6 +645,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'fr-chicken',
+    itemNumber: 51,
     name: 'Chicken Fries',
     description: 'Crisp fries loaded with seasoned shredded chicken.',
     price: 400,
@@ -604,6 +655,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'fr-nuggets-12',
+    itemNumber: 52,
     name: 'Chicken Nuggets (12 Pcs)',
     description: '12 crispy golden fried chicken nuggets with dip.',
     price: 500,
@@ -613,6 +665,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'fr-wings-6',
+    itemNumber: 53,
     name: 'Hot Wings (6 Pcs)',
     description: '6 crispy spicy battered chicken wings.',
     price: 350,
@@ -622,6 +675,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'fr-wings-12',
+    itemNumber: 54,
     name: 'Hot Wings (12 Pcs)',
     description: '12 crispy spicy battered chicken wings.',
     price: 650,
@@ -631,6 +685,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'fr-hot-shot-12',
+    itemNumber: 55,
     name: 'Hot Shots (12 Pcs)',
     description: '12 bite-sized crunchy chicken popcorn shots.',
     price: 500,
@@ -640,6 +695,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'fr-steam-chargha',
+    itemNumber: 56,
     name: 'Chicken Steam Chargha',
     description: 'Full whole chicken steamed and fried with traditional spices.',
     price: 1250,
@@ -649,6 +705,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'fr-roast-1kg',
+    itemNumber: 57,
     name: 'Chicken Roast (1 KG)',
     description: '1 KG whole marinated crisp fried chicken roast.',
     price: 2000,
@@ -662,6 +719,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'bbq-tikka-boti',
+    itemNumber: 58,
     name: 'Chicken Tikka Boti (1 Pc)',
     description: 'Skewered charbroiled spiced chicken boti.',
     price: 150,
@@ -671,6 +729,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'bbq-leg-piece',
+    itemNumber: 59,
     name: 'Chicken Leg Piece',
     description: 'Charcoal grilled whole chicken leg quarter.',
     price: 300,
@@ -680,6 +739,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'bbq-seekh-kabab',
+    itemNumber: 60,
     name: 'Chicken Seekh Kabab (1 Pc)',
     description: 'Minced chicken seekh kabab grilled over hot coals.',
     price: 150,
@@ -689,6 +749,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'bbq-reshmi-kabab',
+    itemNumber: 61,
     name: 'Reshmi Kabab (1 Pc)',
     description: 'Melt-in-mouth soft spiced chicken reshmi kabab.',
     price: 200,
@@ -698,6 +759,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'bbq-malai-boti',
+    itemNumber: 62,
     name: 'Chicken Malai Boti (12 Pcs)',
     description: '12 pieces of creamy mild charbroiled chicken.',
     price: 900,
@@ -707,6 +769,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'bbq-grill-chargha',
+    itemNumber: 63,
     name: 'Grill Chargha (Full)',
     description: 'Full marinated whole chicken grilled to perfection over coals.',
     price: 1500,
@@ -716,6 +779,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'bbq-grill-fish',
+    itemNumber: 64,
     name: 'Grill Fish',
     description: 'Fresh river fish marinated with Lahori spices & char-grilled.',
     price: 1200,
@@ -729,6 +793,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'krh-special-chicken',
+    itemNumber: 65,
     name: 'Special Chicken Karahi',
     description: 'Fresh chicken cooked in fresh tomatoes, ginger & green chilies.',
     price: 800,
@@ -749,6 +814,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'krh-white-chicken',
+    itemNumber: 66,
     name: 'Chicken White Karahi',
     description: 'Cooked in creamy yogurt, fresh cream, white pepper & almond paste.',
     price: 900,
@@ -769,6 +835,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'krh-boneless-handi',
+    itemNumber: 67,
     name: 'Chicken Boneless Handi',
     description: 'Tender boneless chicken cubes in aromatic clay pot gravy.',
     price: 800,
@@ -789,6 +856,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'krh-white-boneless-handi',
+    itemNumber: 68,
     name: 'White Boneless Handi',
     description: 'Creamy boneless chicken prepared in traditional butter cream sauce.',
     price: 900,
@@ -809,6 +877,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'krh-kabab-masala',
+    itemNumber: 69,
     name: 'Chicken Kabab Masala',
     description: 'Grilled seekh kababs simmered in rich spiced tomato onion gravy.',
     price: 900,
@@ -829,6 +898,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'krh-tikka-karahi',
+    itemNumber: 70,
     name: 'Chicken Tikka Karahi',
     description: 'Charcoal grilled tikka pieces sautéed with karahi masala.',
     price: 900,
@@ -849,6 +919,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'krh-achari-chicken',
+    itemNumber: 71,
     name: 'Chicken Achari Karahi',
     description: 'Tangy pickled masala infused chicken karahi.',
     price: 800,
@@ -869,6 +940,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'krh-jalfrezi',
+    itemNumber: 72,
     name: 'Chicken Jalfrezi',
     description: 'Boneless chicken cooked with sliced bell peppers, tomatoes & egg ribbon.',
     price: 800,
@@ -878,6 +950,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'krh-ginger',
+    itemNumber: 73,
     name: 'Chicken Ginger',
     description: 'Boneless chicken prepared with lots of fresh julienned ginger.',
     price: 800,
@@ -887,6 +960,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'krh-special-mutton',
+    itemNumber: 74,
     name: 'Special Mutton Karahi',
     description: 'Fresh tender mutton cuts cooked with tomatoes, green chilies & black pepper.',
     price: 1600,
@@ -907,6 +981,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'krh-white-mutton',
+    itemNumber: 75,
     name: 'White Mutton Karahi',
     description: 'Rich creamy mutton karahi with white pepper, yogurt and cream.',
     price: 1800,
@@ -927,6 +1002,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'krh-achari-mutton',
+    itemNumber: 76,
     name: 'Mutton Achari Karahi',
     description: 'Spicy pickling spices cooked with tender mutton.',
     price: 1600,
@@ -951,6 +1027,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'ds-shahi-daal',
+    itemNumber: 77,
     name: 'Shahi Daal',
     description: 'Rich lentils cooked with desi ghee tarka.',
     price: 300,
@@ -960,6 +1037,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'ds-shahi-chana',
+    itemNumber: 78,
     name: 'Shahi Chana',
     description: 'Chickpeas simmered in special Lahori spices.',
     price: 250,
@@ -969,6 +1047,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'ds-daal-chana',
+    itemNumber: 79,
     name: 'Daal Chana',
     description: 'Gram lentils tempered with garlic, cumin and red chilies.',
     price: 150,
@@ -978,6 +1057,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'ds-mix-sabzi',
+    itemNumber: 80,
     name: 'Mix Sabzi',
     description: 'Seasonal vegetables sautéed in traditional spices.',
     price: 150,
@@ -987,6 +1067,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'ds-daal-mash',
+    itemNumber: 81,
     name: 'Daal Mash',
     description: 'White urad lentils cooked dry with ginger and green chilies.',
     price: 200,
@@ -996,6 +1077,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'ds-daal-lobia',
+    itemNumber: 82,
     name: 'Daal Lobia',
     description: 'Red kidney beans slow cooked in savory gravy.',
     price: 150,
@@ -1005,6 +1087,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'ds-kari-pakora',
+    itemNumber: 83,
     name: 'Kari Pakora',
     description: 'Tangy yogurt gram flour curry with soft onion pakoras.',
     price: 150,
@@ -1014,6 +1097,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'ds-kaley-channey',
+    itemNumber: 84,
     name: 'Kaley Channey',
     description: 'Black chickpeas cooked in homestyle spiced gravy.',
     price: 150,
@@ -1027,6 +1111,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'tan-sada-roti',
+    itemNumber: 85,
     name: 'Sada Roti',
     description: 'Fresh whole wheat tandoori roti.',
     price: 20,
@@ -1036,6 +1121,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tan-sada-naan',
+    itemNumber: 86,
     name: 'Sada Naan',
     description: 'Classic soft tandoori naan.',
     price: 25,
@@ -1045,6 +1131,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tan-kulcha-naan',
+    itemNumber: 87,
     name: 'Kulcha Naan',
     description: 'Traditional sesame topped kulcha.',
     price: 40,
@@ -1054,6 +1141,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tan-paratha',
+    itemNumber: 88,
     name: 'Paratha',
     description: 'Crispy layered tawa paratha.',
     price: 60,
@@ -1063,6 +1151,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tan-tandoori-paratha',
+    itemNumber: 89,
     name: 'Tandoori Paratha',
     description: 'Crisp flaky paratha baked in clay tandoor.',
     price: 60,
@@ -1072,6 +1161,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tan-roghni-naan',
+    itemNumber: 90,
     name: 'Roghni Naan',
     description: 'Soft glazed naan with sesame seeds and butter.',
     price: 70,
@@ -1081,6 +1171,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tan-aloo-naan',
+    itemNumber: 91,
     name: 'Aloo Wala Naan',
     description: 'Tandoori naan stuffed with spiced mashed potatoes.',
     price: 100,
@@ -1090,6 +1181,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tan-aloo-paratha',
+    itemNumber: 92,
     name: 'Aloo Wala Paratha',
     description: 'Crisp paratha stuffed with spicy aloo filling.',
     price: 100,
@@ -1099,6 +1191,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tan-garlic-naan',
+    itemNumber: 93,
     name: 'Garlic Naan',
     description: 'Tandoori naan infused with minced garlic and butter.',
     price: 150,
@@ -1108,6 +1201,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tan-chicken-naan',
+    itemNumber: 94,
     name: 'Chicken Naan',
     description: 'Naan stuffed with seasoned minced chicken.',
     price: 350,
@@ -1117,6 +1211,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tan-cheese-naan',
+    itemNumber: 95,
     name: 'Cheese Naan',
     description: 'Tandoori naan oozing with melted cheese.',
     price: 450,
@@ -1130,6 +1225,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'rc-special-rice',
+    itemNumber: 96,
     name: 'HFC Special Rice',
     description: 'Signature fried rice loaded with chicken, eggs & vegetables.',
     price: 450,
@@ -1139,6 +1235,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'rc-chicken-fried',
+    itemNumber: 97,
     name: 'Chicken Fried Rice',
     description: 'Classic wok tossed rice with seasoned chicken & egg.',
     price: 400,
@@ -1148,6 +1245,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'rc-veg-fried',
+    itemNumber: 98,
     name: 'Vegetable Fried Rice',
     description: 'Wok tossed basmati rice with crunchy seasonal veggies.',
     price: 350,
@@ -1157,6 +1255,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'rc-biryani',
+    itemNumber: 99,
     name: 'Karachi Biryani',
     description: 'Spicy aromatic Karachi style chicken biryani.',
     price: 250,
@@ -1166,6 +1265,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'pst-special',
+    itemNumber: 100,
     name: 'HFC Special Pasta',
     description: 'Rich baked pasta with grilled chicken, olives & melted cheese.',
     price: 600,
@@ -1186,6 +1286,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'pst-crunchy',
+    itemNumber: 101,
     name: 'Crunchy Pasta',
     description: 'Pasta topped with crispy chicken tenders and tangy sauce.',
     price: 600,
@@ -1206,6 +1307,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'pst-creamy',
+    itemNumber: 102,
     name: 'Creamy Pasta',
     description: 'Fettuccine / penne in rich white Alfredo cheese sauce.',
     price: 500,
@@ -1230,6 +1332,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'drk-regular',
+    itemNumber: 103,
     name: 'Regular Cold Drink',
     description: 'Chilled regular cold drink glass / 250ml.',
     price: 80,
@@ -1239,6 +1342,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'drk-half-liter',
+    itemNumber: 104,
     name: 'Half Liter Cold Drink (500ml)',
     description: '500ml chilled pet bottle.',
     price: 130,
@@ -1248,6 +1352,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'drk-1-liter',
+    itemNumber: 105,
     name: '1 Liter Cold Drink (1000ml)',
     description: '1 Liter cold drink pet bottle.',
     price: 170,
@@ -1257,6 +1362,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'drk-1-5-liter',
+    itemNumber: 106,
     name: '1.5 Liter Cold Drink',
     description: '1.5 Liter sharing cold drink bottle.',
     price: 200,
@@ -1266,6 +1372,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'drk-water-small',
+    itemNumber: 107,
     name: 'Mineral Water (500ml)',
     description: '500ml chilled pure mineral water bottle.',
     price: 60,
@@ -1275,6 +1382,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'drk-water-large',
+    itemNumber: 108,
     name: 'Mineral Water (1000ml)',
     description: '1000ml (1 Liter) mineral water bottle.',
     price: 120,
@@ -1284,6 +1392,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tea-doodh-patti',
+    itemNumber: 109,
     name: 'Doodh Patti',
     description: 'Rich aromatic full-milk Pakistani doodh patti chai.',
     price: 80,
@@ -1293,6 +1402,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tea-chai',
+    itemNumber: 110,
     name: 'Regular Chai',
     description: 'Traditional brewed karak chai.',
     price: 70,
@@ -1302,6 +1412,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tea-green',
+    itemNumber: 111,
     name: 'Green Tea (Kehwa)',
     description: 'Cardamom infused refreshing green tea.',
     price: 60,
@@ -1311,6 +1422,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'shk-banana',
+    itemNumber: 112,
     name: 'Banana Milk Shake',
     description: 'Fresh blended banana shake.',
     price: 200,
@@ -1320,6 +1432,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'shk-mango',
+    itemNumber: 113,
     name: 'Mango Milk Shake',
     description: 'Rich chilled mango shake.',
     price: 200,
@@ -1329,6 +1442,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'shk-apple',
+    itemNumber: 114,
     name: 'Apple Milk Shake',
     description: 'Fresh apple blended with milk.',
     price: 200,
@@ -1338,6 +1452,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'shk-mix',
+    itemNumber: 115,
     name: 'Mix Fruit Shake',
     description: 'Cocktail mix fruit shake.',
     price: 250,
@@ -1347,6 +1462,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'shk-ganna',
+    itemNumber: 116,
     name: 'Ganna Juice (Sugarcane)',
     description: 'Fresh pressed sugarcane juice with lemon & ginger.',
     price: 150,
@@ -1360,6 +1476,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   // ==========================================
   {
     id: 'sld-russian',
+    itemNumber: 117,
     name: 'Russian Salad',
     description: 'Creamy salad with diced apples, potatoes, peas & pineapple.',
     price: 500,
@@ -1380,6 +1497,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'sld-green',
+    itemNumber: 118,
     name: 'Fresh Green Salad',
     description: 'Fresh sliced cucumbers, tomatoes, carrots, onions & lemon.',
     price: 80,
@@ -1389,6 +1507,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'sld-zeera-raita',
+    itemNumber: 119,
     name: 'Zeera Raita',
     description: 'Whipped spiced yogurt with roasted cumin.',
     price: 80,
@@ -1398,6 +1517,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'sld-podina-raita',
+    itemNumber: 120,
     name: 'Podina Raita',
     description: 'Fresh mint and green chili yogurt raita.',
     price: 80,
@@ -1407,6 +1527,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'cht-chana',
+    itemNumber: 121,
     name: 'Chana Chaat',
     description: 'Spiced chickpeas with onions, tomatoes and tamarind chutney.',
     price: 120,
@@ -1416,6 +1537,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'cht-samosa',
+    itemNumber: 122,
     name: 'Samosa Chaat',
     description: 'Crushed crispy samosa topped with chana, yogurt and sweet chutney.',
     price: 150,
@@ -1425,6 +1547,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'cht-papri',
+    itemNumber: 123,
     name: 'Papri Chaat',
     description: 'Crispy fried wafers with potato, chickpeas, yogurt and spices.',
     price: 150,
@@ -1434,6 +1557,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'cht-fruit',
+    itemNumber: 124,
     name: 'Fruit Chaat',
     description: 'Fresh seasonal fruit salad seasoned with tangy chaat masala.',
     price: 250,
@@ -1443,6 +1567,7 @@ export const HFC_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'cht-cream',
+    itemNumber: 125,
     name: 'Cream Chaat',
     description: 'Fresh fruits tossed in sweetened cream and nuts.',
     price: 300,
