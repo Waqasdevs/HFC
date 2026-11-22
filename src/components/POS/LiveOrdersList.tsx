@@ -757,7 +757,7 @@ export const LiveOrdersList: React.FC<LiveOrdersListProps> = ({
 
             {/* Kitchen Slip Paper View */}
             <div className="p-5 bg-neutral-100 dark:bg-neutral-950 flex justify-center">
-              <div className="w-full max-w-[72mm] bg-white text-black p-4 font-mono text-xs shadow-apple-sm rounded-xl space-y-2 border border-neutral-300">
+              <div id="printable-kot" className="printable-area w-full max-w-[72mm] bg-white text-black p-4 font-mono text-xs shadow-apple-sm rounded-xl space-y-2 border border-neutral-300">
                 <div className="text-center border-b-2 border-dashed border-black pb-2">
                   <h4 className="font-black text-sm uppercase tracking-wider">*** KITCHEN SLIP ***</h4>
                   <div className="text-xl font-black mt-0.5">{kotModalOrder.token}</div>
