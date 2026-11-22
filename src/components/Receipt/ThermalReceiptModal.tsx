@@ -4,6 +4,7 @@ import React from 'react';
 import type { Order, RestaurantSettings } from '@/types';
 import { Printer, X, CheckCircle, Share2, Copy } from 'lucide-react';
 import { sound } from '@/lib/sound';
+import { printCustomerReceipt } from '@/lib/thermalPrinter';
 
 interface ThermalReceiptModalProps {
   order: Order | null;
@@ -20,7 +21,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
 
   const handlePrint = () => {
     sound.playTap();
-    window.print();
+    printCustomerReceipt(order, settings);
   };
 
   const handleCopyTextReceipt = () => {
@@ -80,7 +81,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
               <div className="text-2xl font-black tracking-tight">{order.token}</div>
               <div className="text-[11px] font-bold uppercase mt-0.5">
                 {order.type.replace('_', ' ')} 
-                {order.tableNumber && ` • TABLE ${order.tableNumber}`}
+                {order.tableNumber && ` - TABLE ${order.tableNumber}`}
               </div>
             </div>
 

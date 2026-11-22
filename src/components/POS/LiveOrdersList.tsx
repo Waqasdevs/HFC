@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { sound } from '@/lib/sound';
 import confetti from 'canvas-confetti';
+import { printKitchenSlip } from '@/lib/thermalPrinter';
 
 interface LiveOrdersListProps {
   orders: Order[];
@@ -256,7 +257,11 @@ export const LiveOrdersList: React.FC<LiveOrdersListProps> = ({
 
   const handleExecuteKOTPrint = () => {
     sound.playTap();
-    window.print();
+    if (kotModalOrder) {
+      printKitchenSlip(kotModalOrder);
+    } else {
+      window.print();
+    }
   };
 
   return (
