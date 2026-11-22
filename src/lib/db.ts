@@ -58,6 +58,16 @@ export async function seedInitialData() {
       });
     }
 
+    // Migration: Update restaurant branding to exact client specification
+    await db.settings.update('default', {
+      restaurantName: 'HFC (Haseeb Food Cafe)',
+      tagline: '',
+      address: 'Masjid Ghousia Town Chitti Mitti, Bhimber Road, Samahni',
+      phone: '0343-5140308 / 0310-1879930',
+      receiptHeader: '*** HFC (HASEEB FOOD CAFE) ***',
+      receiptFooter: 'For Home Delivery Call:\n0343-5140308 / 0310-1879930',
+    });
+
     // Migration: Update restaurant catalog to full Haseeb's Foods Café menu
     const hasDeal1 = await db.menuItems.get('deal-1');
     if (!hasDeal1) {
@@ -65,14 +75,6 @@ export async function seedInitialData() {
       await db.categories.bulkPut(HFC_CATEGORIES);
       await db.menuItems.clear();
       await db.menuItems.bulkPut(HFC_MENU_ITEMS);
-      await db.settings.update('default', {
-        restaurantName: "Haseeb's Foods Café (HFC)",
-        tagline: 'Freshly Fried, Crispy & Delicious',
-        address: 'Gole Masjid Ghousia Town, Chitti Mitti, Bhimber Road, Samahni, Azad Kashmir',
-        phone: '0343-5140308 / 0310-1879930 / 0342-5158128',
-        receiptHeader: '*** HASEEB.S FOODS CAFÉ (HFC) ***',
-        receiptFooter: 'For Home Delivery Call: 0343-5140308 / 0310-1879930 / 0342-5158128\nGole Masjid Ghousia Town, Samahni AJK',
-      });
       try {
         const { syncManager } = await import('@/lib/sync');
         await syncManager.pushCatalog(HFC_CATEGORIES, HFC_MENU_ITEMS);
@@ -130,15 +132,15 @@ export async function seedInitialData() {
   // 1. Settings
   await db.settings.put({
     id: 'default',
-    restaurantName: "Haseeb's Foods Café (HFC)",
-    tagline: 'Freshly Fried, Crispy & Delicious',
-    address: 'Gole Masjid Ghousia Town, Chitti Mitti, Bhimber Road, Samahni, Azad Kashmir',
-    phone: '0343-5140308 / 0310-1879930 / 0342-5158128',
+    restaurantName: 'HFC (Haseeb Food Cafe)',
+    tagline: '',
+    address: 'Masjid Ghousia Town Chitti Mitti, Bhimber Road, Samahni',
+    phone: '0343-5140308 / 0310-1879930',
     currency: 'Rs.',
     taxRate: 0, // PKR without standard 16% sales tax as requested
     defaultDeliveryFee: 150,
-    receiptHeader: '*** HASEEB.S FOODS CAFÉ (HFC) ***',
-    receiptFooter: 'For Home Delivery Call: 0343-5140308 / 0310-1879930 / 0342-5158128\nGole Masjid Ghousia Town, Samahni AJK',
+    receiptHeader: '*** HFC (HASEEB FOOD CAFE) ***',
+    receiptFooter: 'For Home Delivery Call:\n0343-5140308 / 0310-1879930',
     soundEnabled: true,
     autoPrintReceipt: true,
     supabaseUrl: envUrl || '',

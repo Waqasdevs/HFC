@@ -117,15 +117,15 @@ export default function Home() {
   // Default fallback settings
   const settings: RestaurantSettings = dbSettings || {
     id: 'default',
-    restaurantName: 'HFC (Hot & Fast Chicken)',
-    tagline: 'Freshly Fried, Crispy & Delicious',
-    address: 'Main Commercial Avenue, Block 4',
-    phone: '+92 300 1234567',
+    restaurantName: 'HFC (Haseeb Food Cafe)',
+    tagline: '',
+    address: 'Masjid Ghousia Town Chitti Mitti, Bhimber Road, Samahni',
+    phone: '0343-5140308 / 0310-1879930',
     currency: 'Rs.',
     taxRate: 0,
     defaultDeliveryFee: 150,
-    receiptHeader: '*** THANK YOU FOR DINING WITH HFC ***',
-    receiptFooter: 'For Home Delivery Call: +92 300 1234567\nOrder Online: hfc-orders.vercel.app',
+    receiptHeader: '*** HFC (HASEEB FOOD CAFE) ***',
+    receiptFooter: 'For Home Delivery Call:\n0343-5140308 / 0310-1879930',
     soundEnabled: true,
     autoPrintReceipt: true,
   };

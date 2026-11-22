@@ -27,7 +27,10 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
   const handleCopyTextReceipt = () => {
     sound.playTap();
     const paymentText = order.paymentStatus === 'paid' ? `PAID VIA: ${order.paymentMethod.toUpperCase()}` : `UNPAID (${order.type === 'dine_in' ? 'PAY AT COUNTER' : 'COD'})`;
-    const text = `==============================\n${settings.restaurantName}\n${settings.address}\nTel: ${settings.phone}\n==============================\nTOKEN: ${order.token}\nTYPE: ${order.type.toUpperCase()}${order.tableNumber ? ` | TABLE: ${order.tableNumber}` : ''}\nDATE: ${new Date(order.createdAt).toLocaleString()}\nCASHIER: ${order.serverName}\n------------------------------\n${order.items.map(i => `${i.quantity}x ${i.name} - ${settings.currency} ${i.price * i.quantity}`).join('\n')}\n------------------------------\nSUBTOTAL: ${settings.currency} ${order.subtotal}\n${order.deliveryCharge > 0 ? `DELIVERY: ${settings.currency} ${order.deliveryCharge}\n` : ''}${order.discount > 0 ? `DISCOUNT: -${settings.currency} ${order.discount}\n` : ''}TOTAL: ${settings.currency} ${order.total}\n${paymentText}\n==============================\n${settings.receiptFooter}`;
+    const restName = (settings.restaurantName || 'HFC (Haseeb Food Cafe)').replace(/Corner/gi, 'Cafe');
+    const addr = settings.address || 'Masjid Ghousia Town Chitti Mitti, Bhimber Road, Samahni';
+    const phone = settings.phone || '0343-5140308 / 0310-1879930';
+    const text = `==============================\n${restName}\n${addr}\nTel: ${phone}\n==============================\nTOKEN: ${order.token}\nTYPE: ${order.type.toUpperCase()}${order.tableNumber ? ` | TABLE: ${order.tableNumber}` : ''}\nDATE: ${new Date(order.createdAt).toLocaleString()}\nCASHIER: ${order.serverName}\n------------------------------\n${order.items.map(i => `${i.quantity}x ${i.name} - ${settings.currency} ${i.price * i.quantity}`).join('\n')}\n------------------------------\nSUBTOTAL: ${settings.currency} ${order.subtotal}\n${order.deliveryCharge > 0 ? `DELIVERY: ${settings.currency} ${order.deliveryCharge}\n` : ''}${order.discount > 0 ? `DISCOUNT: -${settings.currency} ${order.discount}\n` : ''}TOTAL: ${settings.currency} ${order.total}\n${paymentText}\n==============================\nFor Home Delivery Call:\n0343-5140308 / 0310-1879930\nThank You for Dining With Us!`;
     
     navigator.clipboard.writeText(text);
     alert('Receipt copied to clipboard for WhatsApp/SMS dispatch!');
@@ -67,11 +70,14 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
             {/* Restaurant Brand Header */}
             <div className="text-center space-y-1">
               <h2 className="font-black text-lg tracking-wider uppercase font-sans">
-                {settings.restaurantName}
+                {(settings.restaurantName || 'HFC (Haseeb Food Cafe)').replace(/Corner/gi, 'Cafe')}
               </h2>
-              <p className="text-[11px] font-medium">{settings.tagline}</p>
-              <p className="text-[10px] text-neutral-600">{settings.address}</p>
-              <p className="text-[10px] text-neutral-600">Ph: {settings.phone}</p>
+              <p className="text-[10px] text-neutral-600 font-medium">
+                {settings.address || 'Masjid Ghousia Town Chitti Mitti, Bhimber Road, Samahni'}
+              </p>
+              <p className="text-[10px] text-neutral-600 font-semibold">
+                Ph: {settings.phone || '0343-5140308 / 0310-1879930'}
+              </p>
             </div>
 
             <div className="border-t border-dashed border-neutral-400 my-2"></div>
@@ -185,16 +191,14 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
 
             <div className="border-t border-dashed border-neutral-400 my-2"></div>
 
-            {/* Footer message and simulated QR / Barcode */}
-            <div className="text-center text-[10px] space-y-1 pt-1">
-              <p className="font-semibold whitespace-pre-line">{settings.receiptFooter}</p>
-              <div className="text-center py-2 flex flex-col items-center">
-                <div className="font-mono tracking-widest text-[16px] font-bold">
-                  ||||| ||| ||||||| || |||||
-                </div>
-                <span className="text-[9px] text-neutral-500">{order.id}</span>
-              </div>
-              <p className="text-[9px] text-neutral-400">Powered by HFC Offline POS</p>
+            {/* Footer Home Delivery & Closing */}
+            <div className="text-center text-[10px] space-y-1 pt-2">
+              <p className="font-bold text-[11px] text-neutral-900">For Home Delivery Call:</p>
+              <p className="font-extrabold text-[12px] text-neutral-900 tracking-wide">
+                0343-5140308 / 0310-1879930
+              </p>
+              <p className="text-[10px] text-neutral-500 pt-1 font-medium">Thank You for Dining With Us!</p>
+              <p className="text-[9px] text-neutral-400">Powered by HFC POS</p>
             </div>
           </div>
         </div>

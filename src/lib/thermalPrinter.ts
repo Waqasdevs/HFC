@@ -26,10 +26,13 @@ export function generateCustomerReceiptText(order: Order, settings: RestaurantSe
 
   // Top spacing (prevents cutter from cutting header)
   lines.push('');
-  lines.push(formatCenter(settings.restaurantName.toUpperCase(), width));
-  if (settings.tagline) lines.push(formatCenter(settings.tagline, width));
-  if (settings.address) lines.push(formatCenter(settings.address, width));
-  if (settings.phone) lines.push(formatCenter(`Ph: ${settings.phone}`, width));
+  const restaurantName = (settings.restaurantName || 'HFC (Haseeb Food Cafe)').replace(/Corner/gi, 'Cafe');
+  lines.push(formatCenter(restaurantName.toUpperCase(), width));
+  // Tagline removed per customer specification
+  const address = settings.address || 'Masjid Ghousia Town Chitti Mitti, Bhimber Road, Samahni';
+  lines.push(formatCenter(address, width));
+  const phone = settings.phone || '0343-5140308 / 0310-1879930';
+  lines.push(formatCenter(`Ph: ${phone}`, width));
   lines.push(line);
 
   // Token & Order Type (using ASCII '-' instead of unicode bullet)
@@ -89,20 +92,19 @@ export function generateCustomerReceiptText(order: Order, settings: RestaurantSe
   lines.push(formatReceiptLine('Payment Mode:', paymentText, width));
   lines.push(line);
 
-  if (settings.receiptFooter) {
-    const footerLines = settings.receiptFooter.split('\n');
-    for (const fl of footerLines) {
-      lines.push(formatCenter(fl, width));
-    }
-  }
+  // Home Delivery Call Information
+  lines.push(formatCenter('For Home Delivery Call:', width));
+  lines.push(formatCenter('0343-5140308 / 0310-1879930', width));
+  lines.push('');
+  lines.push(formatCenter('Thank You for Dining With Us!', width));
+  lines.push(formatCenter('Powered by HFC POS', width));
 
-  // Simulated Barcode
+  // Trailing paper feed lines (ensures entire receipt feeds past cutter/tear bar)
   lines.push('');
-  lines.push(formatCenter('||||| ||| ||||||| || |||||', width));
-  lines.push(formatCenter(order.id, width));
-  lines.push(formatCenter('Powered by HFC Offline POS', width));
   lines.push('');
-  lines.push(''); // Bottom paper feed for cutter
+  lines.push('');
+  lines.push('');
+  lines.push('');
 
   return lines.join('\n');
 }
@@ -135,6 +137,11 @@ export function generateKitchenSlipText(order: Order, width = 42): string {
   lines.push(line);
   const totalQty = order.items.reduce((sum, i) => sum + i.quantity, 0);
   lines.push(formatReceiptLine(`Total Items: ${totalQty}`, 'Kitchen Pass', width));
+
+  // Trailing paper feed lines for KOT
+  lines.push('');
+  lines.push('');
+  lines.push('');
   lines.push('');
   lines.push('');
 
@@ -200,7 +207,7 @@ export function printThermalText(text: string, title = 'Receipt'): void {
           width: 78mm;
           max-width: 78mm;
           margin: 0 auto;
-          padding: 6mm 2mm 10mm 2mm;
+          padding: 6mm 2mm 25mm 2mm;
           font-family: inherit;
           font-size: inherit;
           line-height: inherit;
