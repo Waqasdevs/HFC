@@ -99,13 +99,6 @@ export function generateCustomerReceiptText(order: Order, settings: RestaurantSe
   lines.push(formatCenter('Thank You for Dining With Us!', width));
   lines.push(formatCenter('Powered by HFC POS', width));
 
-  // Trailing paper feed lines (ensures entire receipt feeds past cutter/tear bar)
-  lines.push('');
-  lines.push('');
-  lines.push('');
-  lines.push('');
-  lines.push('');
-
   return lines.join('\n');
 }
 
@@ -137,13 +130,6 @@ export function generateKitchenSlipText(order: Order, width = 42): string {
   lines.push(line);
   const totalQty = order.items.reduce((sum, i) => sum + i.quantity, 0);
   lines.push(formatReceiptLine(`Total Items: ${totalQty}`, 'Kitchen Pass', width));
-
-  // Trailing paper feed lines for KOT
-  lines.push('');
-  lines.push('');
-  lines.push('');
-  lines.push('');
-  lines.push('');
 
   return lines.join('\n');
 }
