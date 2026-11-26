@@ -168,9 +168,9 @@ export function printThermalText(text: string, title = 'Receipt'): void {
     <head>
       <meta charset="utf-8">
       <title>${title}</title>
-      <style>
+      <style id="thermal-page-style">
         @page {
-          size: 80mm auto;
+          size: 80mm 297mm;
           margin: 0;
         }
         * {
@@ -181,7 +181,10 @@ export function printThermalText(text: string, title = 'Receipt'): void {
         html, body {
           background: #ffffff !important;
           color: #000000 !important;
-          width: 100%;
+          width: 80mm;
+          height: auto !important;
+          min-height: 0 !important;
+          overflow: visible !important;
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
           font-size: 12px;
           line-height: 1.25;
@@ -193,7 +196,7 @@ export function printThermalText(text: string, title = 'Receipt'): void {
           width: 78mm;
           max-width: 78mm;
           margin: 0 auto;
-          padding: 6mm 2mm 25mm 2mm;
+          padding: 4mm 2mm 25mm 2mm;
           font-family: inherit;
           font-size: inherit;
           line-height: inherit;
@@ -211,8 +214,26 @@ export function printThermalText(text: string, title = 'Receipt'): void {
   `);
   doc.close();
 
+  const applyExactPageSize = () => {
+    const preEl = doc.querySelector('pre');
+    const pageStyleEl = doc.getElementById('thermal-page-style');
+    if (!preEl || !pageStyleEl) return;
+    const heightPx = Math.ceil(preEl.getBoundingClientRect().height);
+    if (heightPx > 0) {
+      // @page `80mm auto` is invalid in CSS Paged Media and ignored by Chromium (falling back to Letter/A4).
+      // Setting exact `80mm <height>mm` keeps receipts to their true length on strictly 1 sheet.
+      const heightMm = Math.max(50, Math.ceil((heightPx * 25.4) / 96) + 2);
+      if (iframe) iframe.style.height = `${heightPx + 8}px`;
+      pageStyleEl.textContent =
+        pageStyleEl.textContent?.replace(/size:\s*80mm\s+[^;]+;/, `size: 80mm ${heightMm}mm;`) || '';
+    }
+  };
+
+  applyExactPageSize();
+
   setTimeout(() => {
     try {
+      applyExactPageSize();
       iframe?.contentWindow?.focus();
       iframe?.contentWindow?.print();
     } catch {
