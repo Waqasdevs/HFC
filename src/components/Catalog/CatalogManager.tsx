@@ -147,6 +147,11 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
     setItemModalOpen(true);
   };
 
+  // Next sequential item code number for new items
+  const nextItemNumber = useMemo(() => {
+    return menuItems.reduce((max, item) => Math.max(max, item.itemNumber || 0), 0) + 1;
+  }, [menuItems]);
+
   // Submit Menu Item Save
   const handleSaveItemSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,11 +165,13 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
 
     const newItemData: MenuItem = {
       id: editingItem ? editingItem.id : `item-${Date.now()}`,
+      itemNumber: editingItem ? editingItem.itemNumber : nextItemNumber,
       name: itemName.trim(),
       description: itemDesc.trim(),
       price: Number(itemPrice) || 0,
       categoryId: targetCat?.id || 'general',
       categoryName: targetCat?.name || 'General',
+      image: editingItem?.image,
       isAvailable: itemIsAvailable,
       stockTracking: itemStockTracking,
       stockItemId: itemStockTracking ? itemStockItemId : undefined,

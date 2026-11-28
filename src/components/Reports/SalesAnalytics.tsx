@@ -22,6 +22,7 @@ import {
   Filter
 } from 'lucide-react';
 import { sound } from '@/lib/sound';
+import { printSalesReport } from '@/lib/thermalPrinter';
 
 export type ReportPeriod = 'today' | 'yesterday' | 'month' | 'year' | 'custom' | 'all';
 
@@ -177,11 +178,6 @@ export const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({
     };
   }, [filteredOrders]);
 
-  const handlePrintSummary = () => {
-    sound.playTap();
-    window.print();
-  };
-
   const periodLabels: Record<ReportPeriod, string> = {
     today: "Today's Summary",
     yesterday: "Yesterday's Summary",
@@ -191,8 +187,34 @@ export const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({
     all: "All-Time Historical Summary"
   };
 
+  const handlePrintSummary = () => {
+    sound.playTap();
+    printSalesReport({
+      periodLabel: periodLabels[period],
+      currency,
+      totalPaidRevenue: calculations.totalPaidRevenue,
+      paidTicketsCount: calculations.paidTicketsCount,
+      pendingUnpaidRevenue: calculations.pendingUnpaidRevenue,
+      unpaidTicketsCount: calculations.unpaidTicketsCount,
+      totalOrderTickets: calculations.totalOrderTickets,
+      cancelledTicketsCount: calculations.cancelledTicketsCount,
+      averageTicket: calculations.averageTicket,
+      dineInCount: calculations.dineInCount,
+      dineInRevenue: calculations.dineInRevenue,
+      takeawayCount: calculations.takeawayCount,
+      takeawayRevenue: calculations.takeawayRevenue,
+      deliveryCount: calculations.deliveryCount,
+      deliveryRevenue: calculations.deliveryRevenue,
+      cashRevenue: calculations.cashRevenue,
+      cardRevenue: calculations.cardRevenue,
+      brotherStats: calculations.brotherStats,
+      topItems: calculations.topItems,
+      orders: filteredOrders,
+    });
+  };
+
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div id="printable-report" className="printable-sheet-area p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">

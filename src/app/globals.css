@@ -208,10 +208,14 @@
   [class*="overflow-hidden"],
   [class*="overflow-y-auto"],
   [class*="overflow-x-auto"],
-  [class*="max-h-"] {
+  [class*="max-h-"],
+  .h-screen,
+  .w-screen,
+  main {
     overflow: visible !important;
     max-height: none !important;
     height: auto !important;
+    width: auto !important;
   }
 
   body * {

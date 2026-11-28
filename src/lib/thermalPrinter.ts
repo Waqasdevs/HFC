@@ -19,20 +19,20 @@ export function formatCenter(text: string, width = 42): string {
   return ' '.repeat(leftPad) + text;
 }
 
-export function generateCustomerReceiptText(order: Order, settings: RestaurantSettings, width = 42): string {
+export function generateCustomerReceiptText(
+  order: Order,
+  settings: RestaurantSettings,
+  width = 42,
+  includeHeaderText = true
+): string {
   const line = '-'.repeat(width);
   const doubleLine = '='.repeat(width);
   const lines: string[] = [];
 
-  // Top spacing (prevents cutter from cutting header)
-  lines.push('');
-  const restaurantName = (settings.restaurantName || 'HFC (Haseeb Food Cafe)').replace(/Corner/gi, 'Cafe');
-  lines.push(formatCenter(restaurantName.toUpperCase(), width));
-  // Tagline removed per customer specification
-  const address = settings.address || 'Masjid Ghousia Town Chitti Mitti, Bhimber Road, Samahni';
-  lines.push(formatCenter(address, width));
-  const phone = settings.phone || '0343-5140308 / 0310-1879930';
-  lines.push(formatCenter(`Ph: ${phone}`, width));
+  if (includeHeaderText) {
+    lines.push(formatCenter('HFC', width));
+    lines.push(formatCenter('HASEEB FOOD CAFE', width));
+  }
   lines.push(line);
 
   // Token & Order Type (using ASCII '-' instead of unicode bullet)
@@ -134,7 +134,16 @@ export function generateKitchenSlipText(order: Order, width = 42): string {
   return lines.join('\n');
 }
 
-export function printThermalText(text: string, title = 'Receipt'): void {
+export interface BrandHeader {
+  title: string;
+  subtitle?: string;
+}
+
+export function printThermalText(
+  text: string,
+  title = 'Receipt',
+  brandHeader?: BrandHeader
+): void {
   if (typeof window === 'undefined') return;
 
   let iframe = document.getElementById('thermal-print-iframe') as HTMLIFrameElement | null;
@@ -148,6 +157,8 @@ export function printThermalText(text: string, title = 'Receipt'): void {
     iframe.style.height = '100px';
     iframe.style.border = '0';
     document.body.appendChild(iframe);
+  } else {
+    iframe.style.width = '80mm';
   }
 
   const doc = iframe.contentWindow?.document;
@@ -161,13 +172,23 @@ export function printThermalText(text: string, title = 'Receipt'): void {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const brandHtml = brandHeader
+    ? `<div class="brand-header">
+        <div class="brand-title">${escapeHtml(brandHeader.title)}</div>
+        ${brandHeader.subtitle ? `<div class="brand-subtitle">${escapeHtml(brandHeader.subtitle)}</div>` : ''}
+      </div>`
+    : '';
+
   doc.open();
   doc.write(`
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <title>${title}</title>
+      <title>${escapeHtml(title)}</title>
       <style id="thermal-page-style">
         @page {
           size: 80mm 297mm;
@@ -192,11 +213,37 @@ export function printThermalText(text: string, title = 'Receipt'): void {
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
-        pre {
+        .receipt-sheet {
           width: 78mm;
           max-width: 78mm;
           margin: 0 auto;
           padding: 4mm 2mm 25mm 2mm;
+          background: #ffffff !important;
+          color: #000000 !important;
+        }
+        .brand-header {
+          text-align: center;
+          margin-bottom: 4px;
+          font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+        }
+        .brand-title {
+          font-size: 28px;
+          font-weight: 900;
+          letter-spacing: 3px;
+          line-height: 1.05;
+          color: #000000 !important;
+        }
+        .brand-subtitle {
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 1px;
+          margin-top: 2px;
+          color: #000000 !important;
+        }
+        pre {
+          width: 100%;
+          margin: 0;
+          padding: 0;
           font-family: inherit;
           font-size: inherit;
           line-height: inherit;
@@ -208,17 +255,20 @@ export function printThermalText(text: string, title = 'Receipt'): void {
       </style>
     </head>
     <body>
-      <pre>${escapedText}</pre>
+      <div class="receipt-sheet">
+        ${brandHtml}
+        <pre>${escapedText}</pre>
+      </div>
     </body>
     </html>
   `);
   doc.close();
 
   const applyExactPageSize = () => {
-    const preEl = doc.querySelector('pre');
+    const sheetEl = doc.querySelector('.receipt-sheet');
     const pageStyleEl = doc.getElementById('thermal-page-style');
-    if (!preEl || !pageStyleEl) return;
-    const heightPx = Math.ceil(preEl.getBoundingClientRect().height);
+    if (!sheetEl || !pageStyleEl) return;
+    const heightPx = Math.ceil(sheetEl.getBoundingClientRect().height);
     if (heightPx > 0) {
       // @page `80mm auto` is invalid in CSS Paged Media and ignored by Chromium (falling back to Letter/A4).
       // Setting exact `80mm <height>mm` keeps receipts to their true length on strictly 1 sheet.
@@ -243,11 +293,272 @@ export function printThermalText(text: string, title = 'Receipt'): void {
 }
 
 export function printCustomerReceipt(order: Order, settings: RestaurantSettings): void {
-  const text = generateCustomerReceiptText(order, settings);
-  printThermalText(text, order.token || 'Receipt');
+  const text = generateCustomerReceiptText(order, settings, 42, false);
+  printThermalText(text, order.token || 'Receipt', {
+    title: 'HFC',
+    subtitle: 'HASEEB FOOD CAFE',
+  });
 }
 
 export function printKitchenSlip(order: Order): void {
   const text = generateKitchenSlipText(order);
   printThermalText(text, `KOT-${order.token || 'Order'}`);
+}
+
+export interface SalesReportPrintPayload {
+  periodLabel: string;
+  currency: string;
+  totalPaidRevenue: number;
+  paidTicketsCount: number;
+  pendingUnpaidRevenue: number;
+  unpaidTicketsCount: number;
+  totalOrderTickets: number;
+  cancelledTicketsCount: number;
+  averageTicket: number;
+  dineInCount: number;
+  dineInRevenue: number;
+  takeawayCount: number;
+  takeawayRevenue: number;
+  deliveryCount: number;
+  deliveryRevenue: number;
+  cashRevenue: number;
+  cardRevenue: number;
+  brotherStats: Record<string, { count: number; revenue: number }>;
+  topItems: Array<{ name: string; quantity: number; revenue: number }>;
+  orders: Order[];
+}
+
+export function printSalesReport(report: SalesReportPrintPayload): void {
+  if (typeof window === 'undefined') return;
+
+  let iframe = document.getElementById('report-print-iframe') as HTMLIFrameElement | null;
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = 'report-print-iframe';
+    iframe.style.position = 'fixed';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '210mm';
+    iframe.style.height = '297mm';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+  }
+
+  const doc = iframe.contentWindow?.document;
+  if (!doc) {
+    window.print();
+    return;
+  }
+
+  const esc = (s: unknown) =>
+    String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+  const c = esc(report.currency);
+  const fmt = (n: number) => `${c} ${Number(n || 0).toLocaleString()}`;
+
+  const brothersRows = Object.entries(report.brotherStats)
+    .map(
+      ([name, stats]) => `
+      <tr>
+        <td>${esc(name)}</td>
+        <td class="right">${stats.count}</td>
+        <td class="right bold">${fmt(stats.revenue)}</td>
+      </tr>`
+    )
+    .join('') || '<tr><td colspan="3" class="muted">No settled orders in this period</td></tr>';
+
+  const topItemRows = report.topItems
+    .map(
+      (item, idx) => `
+      <tr>
+        <td>#${idx + 1} ${esc(item.name)}</td>
+        <td class="right">${item.quantity}</td>
+        <td class="right bold">${fmt(item.revenue)}</td>
+      </tr>`
+    )
+    .join('') || '<tr><td colspan="3" class="muted">No items sold in this period</td></tr>';
+
+  const orderRows = report.orders
+    .slice(0, 100)
+    .map(
+      (o) => `
+      <tr>
+        <td class="bold">${esc(o.token)}</td>
+        <td>${esc(o.type.replace('_', ' ').toUpperCase())}</td>
+        <td>${esc(o.serverName?.split(' ')[0] || 'Haseeb')}</td>
+        <td>${esc((o.items || []).map((i) => `${i.quantity}x ${i.name}`).join(', '))}</td>
+        <td>${esc(o.paymentMethod.toUpperCase())}</td>
+        <td>${esc(o.paymentStatus.toUpperCase())}</td>
+        <td class="right bold">${fmt(o.total)}</td>
+      </tr>`
+    )
+    .join('') || '<tr><td colspan="7" class="muted">No transactions found in this period</td></tr>';
+
+  doc.open();
+  doc.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>HFC Sales Report - ${esc(report.periodLabel)}</title>
+      <style>
+        @page {
+          size: A4 portrait;
+          margin: 12mm;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+          font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+          color: #111111;
+          background: #ffffff;
+          font-size: 11px;
+          line-height: 1.4;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          border-bottom: 2px solid #111;
+          padding-bottom: 10px;
+          margin-bottom: 14px;
+        }
+        .brand { font-size: 20px; font-weight: 900; letter-spacing: 0.5px; }
+        .sub { font-size: 11px; color: #555; }
+        .meta { text-align: right; font-size: 10px; color: #444; }
+        .kpis {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 10px;
+          margin-bottom: 14px;
+        }
+        .kpi {
+          border: 1px solid #d4d4d8;
+          border-radius: 8px;
+          padding: 10px;
+        }
+        .kpi-label { font-size: 9px; text-transform: uppercase; color: #666; font-weight: 700; }
+        .kpi-val { font-size: 16px; font-weight: 900; margin-top: 3px; }
+        .kpi-sub { font-size: 9px; color: #555; margin-top: 2px; }
+        .grid-2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 14px;
+        }
+        .section {
+          border: 1px solid #d4d4d8;
+          border-radius: 8px;
+          padding: 10px;
+          margin-bottom: 12px;
+          break-inside: avoid;
+        }
+        .section h3 { font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; color: #222; }
+        table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        th, td { padding: 5px 6px; border-bottom: 1px solid #e4e4e7; text-align: left; }
+        th { background: #f4f4f5; font-weight: 700; text-transform: uppercase; font-size: 9px; color: #444; }
+        .right { text-align: right; }
+        .bold { font-weight: 700; }
+        .muted { color: #777; text-align: center; padding: 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <div class="brand">HFC — HASEEB FOOD CAFE</div>
+          <div class="sub">Sales &amp; Financial Audit Report &bull; ${esc(report.periodLabel)}</div>
+        </div>
+        <div class="meta">
+          Generated: ${esc(new Date().toLocaleString())}
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-label">Net Paid Revenue</div>
+          <div class="kpi-val">${fmt(report.totalPaidRevenue)}</div>
+          <div class="kpi-sub">From ${report.paidTicketsCount} paid tickets</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Unpaid / Counter Bills</div>
+          <div class="kpi-val">${fmt(report.pendingUnpaidRevenue)}</div>
+          <div class="kpi-sub">${report.unpaidTicketsCount} awaiting settlement</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Total Tickets</div>
+          <div class="kpi-val">${report.totalOrderTickets} Orders</div>
+          <div class="kpi-sub">${report.cancelledTicketsCount} cancelled</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Avg Ticket Size</div>
+          <div class="kpi-val">${fmt(report.averageTicket)}</div>
+          <div class="kpi-sub">Per paid transaction</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="section">
+          <h3>Channel &amp; Payment Breakdown</h3>
+          <table>
+            <tbody>
+              <tr><td>Dine-In (${report.dineInCount} orders)</td><td class="right bold">${fmt(report.dineInRevenue)}</td></tr>
+              <tr><td>Takeaway (${report.takeawayCount} orders)</td><td class="right bold">${fmt(report.takeawayRevenue)}</td></tr>
+              <tr><td>Home Delivery (${report.deliveryCount} orders)</td><td class="right bold">${fmt(report.deliveryRevenue)}</td></tr>
+              <tr><td>Cash Collected</td><td class="right bold">${fmt(report.cashRevenue)}</td></tr>
+              <tr><td>Card / Online Transfer</td><td class="right bold">${fmt(report.cardRevenue)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>Cashier Brother Shift Audit</h3>
+          <table>
+            <thead><tr><th>Cashier</th><th class="right">Paid Orders</th><th class="right">Revenue</th></tr></thead>
+            <tbody>${brothersRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Top Selling Menu Items</h3>
+        <table>
+          <thead><tr><th>Item</th><th class="right">Qty Sold</th><th class="right">Gross Revenue</th></tr></thead>
+          <tbody>${topItemRows}</tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h3>Transaction Ledger (${Math.min(report.orders.length, 100)} of ${report.orders.length} orders)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Token</th>
+              <th>Channel</th>
+              <th>Cashier</th>
+              <th>Items</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th class="right">Total</th>
+            </tr>
+          </thead>
+          <tbody>${orderRows}</tbody>
+        </table>
+      </div>
+    </body>
+    </html>
+  `);
+  doc.close();
+
+  setTimeout(() => {
+    try {
+      iframe?.contentWindow?.focus();
+      iframe?.contentWindow?.print();
+    } catch {
+      window.print();
+    }
+  }, 150);
 }

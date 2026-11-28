@@ -16,10 +16,13 @@ import {
   ChevronDown,
   ChevronUp,
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Trash2,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { sound } from '@/lib/sound';
-import { cleanSupabaseUrl } from '@/lib/sync';
+import { cleanSupabaseUrl, syncManager } from '@/lib/sync';
 import { SUPABASE_SCHEMA_SQL } from '@/lib/schemaSql';
 import { createClient } from '@supabase/supabase-js';
 
@@ -78,6 +81,43 @@ export const RestaurantSettingsModal: React.FC<RestaurantSettingsModalProps> = (
     return !(settings.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL);
   });
   const [copiedSql, setCopiedSql] = useState(false);
+  const [isResettingOrders, setIsResettingOrders] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  const handleClearTestingOrders = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to permanently delete ALL existing/testing orders from BOTH this device and Supabase cloud, and reset all dining tables to Available?\n\nYour menu items, categories, staff profiles, and restaurant settings will NOT be affected.'
+    );
+    if (!confirmed) return;
+
+    sound.playTap();
+    setIsResettingOrders(true);
+    setResetMessage(null);
+    const res = await syncManager.clearAllOrdersAndResetTables();
+    setIsResettingOrders(false);
+    if (res.success) {
+      sound.playSuccess();
+      setResetMessage('✓ All testing orders cleared from local POS & Supabase cloud. All tables reset to Available (next order will start at HFC-101).');
+    } else {
+      sound.playAlert();
+      setResetMessage(`⚠️ Partial or failed reset: ${res.error || 'Unknown error'}`);
+    }
+  };
+
+  const handleForceCloudSync = async () => {
+    sound.playTap();
+    setIsResettingOrders(true);
+    setResetMessage(null);
+    const res = await syncManager.forceSync();
+    setIsResettingOrders(false);
+    if (res.success) {
+      sound.playSuccess();
+      setResetMessage('✓ Sync complete! Local POS database and Supabase cloud are fully aligned.');
+    } else {
+      sound.playAlert();
+      setResetMessage(`⚠️ Sync warning: ${res.error || 'Check internet connection or keys'}`);
+    }
+  };
 
   const handleChange = (field: keyof RestaurantSettings, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -520,6 +560,53 @@ export const RestaurantSettingsModal: React.FC<RestaurantSettingsModalProps> = (
               />
             </div>
           </div>
+        </div>
+
+        {/* Section 5: Data Cleanup & Go-Live Reset */}
+        <div className="bg-white dark:bg-[#1C1C1E] rounded-3xl p-6 border border-red-500/20 dark:border-red-500/20 shadow-apple-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-500" />
+                <span>Go-Live Reset &amp; Testing Order Cleanup</span>
+              </h3>
+              <p className="text-xs text-neutral-500 mt-0.5">
+                Clear all existing test orders from local POS &amp; Supabase cloud so owners can start fresh from HFC-101. Menu catalog &amp; staff remain untouched.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleForceCloudSync}
+                disabled={isResettingOrders}
+                className="apple-button px-3.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isResettingOrders ? 'animate-spin' : ''}`} />
+                <span>Force Cloud Sync</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleClearTestingOrders}
+                disabled={isResettingOrders}
+                className="apple-button px-3.5 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isResettingOrders ? 'Clearing...' : 'Clear All Test Orders'}</span>
+              </button>
+            </div>
+          </div>
+
+          {resetMessage && (
+            <div className={`p-3 rounded-xl text-xs font-bold ${
+              resetMessage.startsWith('✓')
+                ? 'bg-apple-green/10 text-apple-green border border-apple-green/20'
+                : 'bg-apple-red/10 text-apple-red border border-apple-red/20'
+            }`}>
+              {resetMessage}
+            </div>
+          )}
         </div>
 
         {/* Save Button */}

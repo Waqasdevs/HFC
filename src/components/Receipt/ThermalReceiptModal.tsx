@@ -27,10 +27,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
   const handleCopyTextReceipt = () => {
     sound.playTap();
     const paymentText = order.paymentStatus === 'paid' ? `PAID VIA: ${order.paymentMethod.toUpperCase()}` : `UNPAID (${order.type === 'dine_in' ? 'PAY AT COUNTER' : 'COD'})`;
-    const restName = (settings.restaurantName || 'HFC (Haseeb Food Cafe)').replace(/Corner/gi, 'Cafe');
-    const addr = settings.address || 'Masjid Ghousia Town Chitti Mitti, Bhimber Road, Samahni';
-    const phone = settings.phone || '0343-5140308 / 0310-1879930';
-    const text = `==============================\n${restName}\n${addr}\nTel: ${phone}\n==============================\nTOKEN: ${order.token}\nTYPE: ${order.type.toUpperCase()}${order.tableNumber ? ` | TABLE: ${order.tableNumber}` : ''}\nDATE: ${new Date(order.createdAt).toLocaleString()}\nCASHIER: ${order.serverName}\n------------------------------\n${order.items.map(i => `${i.quantity}x ${i.name} - ${settings.currency} ${i.price * i.quantity}`).join('\n')}\n------------------------------\nSUBTOTAL: ${settings.currency} ${order.subtotal}\n${order.deliveryCharge > 0 ? `DELIVERY: ${settings.currency} ${order.deliveryCharge}\n` : ''}${order.discount > 0 ? `DISCOUNT: -${settings.currency} ${order.discount}\n` : ''}TOTAL: ${settings.currency} ${order.total}\n${paymentText}\n==============================\nFor Home Delivery Call:\n0343-5140308 / 0310-1879930\nThank You for Dining With Us!`;
+    const text = `==============================\nHFC - HASEEB FOOD CAFE\n==============================\nTOKEN: ${order.token}\nTYPE: ${order.type.toUpperCase()}${order.tableNumber ? ` | TABLE: ${order.tableNumber}` : ''}\nDATE: ${new Date(order.createdAt).toLocaleString()}\nCASHIER: ${order.serverName}\n------------------------------\n${order.items.map(i => `${i.quantity}x ${i.name} - ${settings.currency} ${i.price * i.quantity}`).join('\n')}\n------------------------------\nSUBTOTAL: ${settings.currency} ${order.subtotal}\n${order.deliveryCharge > 0 ? `DELIVERY: ${settings.currency} ${order.deliveryCharge}\n` : ''}${order.discount > 0 ? `DISCOUNT: -${settings.currency} ${order.discount}\n` : ''}TOTAL: ${settings.currency} ${order.total}\n${paymentText}\n==============================\nFor Home Delivery Call:\n0343-5140308 / 0310-1879930\nThank You for Dining With Us!`;
     
     navigator.clipboard.writeText(text);
     alert('Receipt copied to clipboard for WhatsApp/SMS dispatch!');
@@ -68,15 +65,12 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
             className="printable-area w-full max-w-[78mm] bg-white text-black p-5 font-mono text-xs shadow-apple-sm rounded-xl space-y-3 leading-tight"
           >
             {/* Restaurant Brand Header */}
-            <div className="text-center space-y-1">
-              <h2 className="font-black text-lg tracking-wider uppercase font-sans">
-                {(settings.restaurantName || 'HFC (Haseeb Food Cafe)').replace(/Corner/gi, 'Cafe')}
+            <div className="text-center space-y-0.5 pb-1">
+              <h2 className="font-black text-3xl tracking-widest uppercase font-sans leading-none text-black">
+                HFC
               </h2>
-              <p className="text-[10px] text-neutral-600 font-medium">
-                {settings.address || 'Masjid Ghousia Town Chitti Mitti, Bhimber Road, Samahni'}
-              </p>
-              <p className="text-[10px] text-neutral-600 font-semibold">
-                Ph: {settings.phone || '0343-5140308 / 0310-1879930'}
+              <p className="text-xs font-extrabold tracking-wider uppercase font-sans text-neutral-800">
+                HASEEB FOOD CAFE
               </p>
             </div>
 

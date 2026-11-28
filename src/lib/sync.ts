@@ -43,25 +43,35 @@ export function toSnakeCase(obj: Record<string, any>): Record<string, any> {
 }
 
 // Helper to sanitize entity payload before PostgreSQL upsert
-export function sanitizeEntityData(entity: string, data: Record<string, any>): Record<string, any> {
+export function sanitizeEntityData(entity: string, data: Record<string, any>, isPartial = false): Record<string, any> {
   const snake = toSnakeCase(data);
   if (entity === 'settings') {
     delete snake.supabase_url;
     delete snake.supabase_anon_key;
   }
   if (entity === 'orders') {
-    if (snake.table_number === undefined) snake.table_number = null;
-    if (snake.customer === undefined) snake.customer = null;
-    if (snake.notes === undefined) snake.notes = null;
-    if (snake.assigned_rider_id === undefined) snake.assigned_rider_id = null;
-    if (snake.assigned_rider_name === undefined) snake.assigned_rider_name = null;
+    if (!isPartial || 'tableNumber' in data || 'table_number' in data) {
+      if (snake.table_number === undefined) snake.table_number = null;
+    }
+    if (!isPartial || 'customer' in data) {
+      if (snake.customer === undefined) snake.customer = null;
+    }
+    if (!isPartial || 'notes' in data) {
+      if (snake.notes === undefined) snake.notes = null;
+    }
+    if (!isPartial || 'assignedRiderId' in data || 'assigned_rider_id' in data) {
+      if (snake.assigned_rider_id === undefined) snake.assigned_rider_id = null;
+    }
+    if (!isPartial || 'assignedRiderName' in data || 'assigned_rider_name' in data) {
+      if (snake.assigned_rider_name === undefined) snake.assigned_rider_name = null;
+    }
   }
   // PostgreSQL schema does not have updated_at on stock or shifts
   if (entity === 'stock' || entity === 'shifts') {
     delete snake.updated_at;
   }
-  // PostgreSQL schema has stock_tracking as NOT NULL DEFAULT false
-  if (entity === 'menuItems' || entity === 'menu_items') {
+  // PostgreSQL schema has stock_tracking as NOT NULL DEFAULT false (apply default on full records only)
+  if (!isPartial && (entity === 'menuItems' || entity === 'menu_items')) {
     if (snake.stock_tracking === undefined || snake.stock_tracking === null) {
       snake.stock_tracking = false;
     }
@@ -137,6 +147,7 @@ export function ensureEntityDefaults(entity: string, data: Record<string, any>):
 class SyncManager {
   private isOnline: boolean = true;
   private isSyncing: boolean = false;
+  private resyncRequested: boolean = false;
   private lastSyncTime: string | null = null;
   private cloudSyncError: string | null = null;
   private hasCloudConfig: boolean = false;
@@ -238,14 +249,14 @@ class SyncManager {
 
     if (!this.hasCloudConfig) return;
 
-    // 1. Pull down data so any browser opening the site immediately syncs with live cloud
+    // 1. Push any local offline mutations first so nothing is overwritten
+    await this.processQueue();
+
+    // 2. Pull down latest cloud state so every device stays aligned
     await this.pullFromCloud();
 
-    // 2. Subscribe to realtime updates
+    // 3. Subscribe to realtime updates across all tables
     await this.initRealtime();
-
-    // 3. Process any local offline mutations
-    await this.processQueue();
   }
 
   public async pullFromCloud(): Promise<void> {
@@ -254,16 +265,27 @@ class SyncManager {
     if (!supabase) return;
 
     try {
-      // Pull recent 200 orders
-      const { data: cloudOrders } = await supabase
+      // Pull recent 200 orders and reconcile deletions cleanly
+      const { data: cloudOrders, error: ordersErr } = await supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(200);
 
-      if (cloudOrders && cloudOrders.length > 0) {
-        const camelOrders = cloudOrders.map(toCamelCase);
-        await db.orders.bulkPut(camelOrders as any);
+      if (!ordersErr && cloudOrders) {
+        const pendingOrders = await db.syncQueue.where('entity').equals('orders').toArray();
+        const pendingOrderIds = new Set(pendingOrders.map(m => m.data?.id).filter(Boolean));
+
+        if (cloudOrders.length === 0) {
+          await db.orders.filter(o => !pendingOrderIds.has(o.id)).delete();
+        } else {
+          const camelOrders = cloudOrders.map(toCamelCase);
+          await db.orders.bulkPut(camelOrders as any);
+          if (cloudOrders.length < 200) {
+            const cloudOrderIds = new Set(cloudOrders.map(o => o.id));
+            await db.orders.filter(o => !cloudOrderIds.has(o.id) && !pendingOrderIds.has(o.id)).delete();
+          }
+        }
       }
 
       // Pull tables
@@ -434,6 +456,29 @@ class SyncManager {
             }
           }
         )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'categories' },
+          async (payload: any) => {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const camel = toCamelCase(payload.new);
+              await db.categories.put(camel as any);
+            } else if (payload.eventType === 'DELETE' && payload.old?.id) {
+              await db.categories.delete(payload.old.id);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'settings' },
+          async (payload: any) => {
+            if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && payload.new?.id) {
+              const camel = toCamelCase(payload.new);
+              const existing = await db.settings.get(payload.new.id);
+              await db.settings.put({ ...(existing || {}), ...camel } as any);
+            }
+          }
+        )
         .subscribe();
     } catch (err: any) {
       console.warn('Supabase realtime init note:', err?.message || err);
@@ -510,32 +555,38 @@ class SyncManager {
     await db.syncQueue.put(mutation);
     await this.emitStatus();
 
-    // If online, immediately try to sync
-    if (this.isOnline && !this.isSyncing) {
+    // If online, trigger sync (if already syncing, processQueue will automatically drain again)
+    if (this.isOnline) {
       this.processQueue();
     }
   }
 
   // Drain the pending mutations
   public async processQueue(): Promise<void> {
-    if (this.isSyncing || !this.isOnline) return;
+    if (!this.isOnline) return;
+    if (this.isSyncing) {
+      this.resyncRequested = true;
+      return;
+    }
 
     try {
       this.isSyncing = true;
       await this.emitStatus();
 
-      const pending = await db.syncQueue.filter(m => !m.synced).toArray();
-      if (pending.length === 0) {
-        this.isSyncing = false;
-        await this.emitStatus();
-        return;
-      }
+      do {
+        this.resyncRequested = false;
 
-      const creds = await this.getCredentials();
-      this.hasCloudConfig = !!creds;
-      let syncSucceeded = false;
+        const pending = await db.syncQueue.filter(m => !m.synced).toArray();
+        if (pending.length === 0) break;
 
-      if (this.hasCloudConfig) {
+        const creds = await this.getCredentials();
+        this.hasCloudConfig = !!creds;
+
+        if (!this.hasCloudConfig) {
+          this.cloudSyncError = null;
+          break;
+        }
+
         try {
           const supabase = await this.getClient();
           if (!supabase) throw new Error('Supabase client failed to initialize with provided credentials');
@@ -552,85 +603,87 @@ class SyncManager {
             categories: 'categories',
           };
 
-          const processedIds: string[] = [];
+          let lastItemErr: string | null = null;
+          let syncedAny = false;
+
           for (const item of pending) {
             const table = tableNameMap[item.entity] || item.entity;
-            if (item.action === 'CREATE' || item.action === 'UPDATE') {
-              // 1. Fetch full record from local Dexie database if available to prevent partial updates from violating NOT NULL constraints
-              const dexieTable = dexieEntityMap[item.entity];
-              let localRecord: any = null;
-              if (dexieTable && item.data?.id && (db as any)[dexieTable]) {
-                try {
-                  localRecord = await (db as any)[dexieTable].get(item.data.id);
-                } catch {
-                  // Ignore
+            try {
+              if (item.action === 'CREATE' || item.action === 'UPDATE') {
+                // 1. Fetch full record from local Dexie database if available to prevent partial updates from violating NOT NULL constraints
+                const dexieTable = dexieEntityMap[item.entity];
+                let localRecord: any = null;
+                if (dexieTable && item.data?.id && (db as any)[dexieTable]) {
+                  try {
+                    localRecord = await (db as any)[dexieTable].get(item.data.id);
+                  } catch {
+                    // Ignore
+                  }
                 }
-              }
 
-              // 2. If it's an UPDATE and target has an id, try direct column-level update on Supabase first
-              if (item.action === 'UPDATE' && item.data?.id) {
-                const partialSnake = sanitizeEntityData(item.entity, item.data);
+                // 2. If it's an UPDATE and target has an id, try direct column-level update on Supabase first
+                if (item.action === 'UPDATE' && item.data?.id) {
+                  const partialSnake = sanitizeEntityData(item.entity, item.data, true);
+                  if (item.entity !== 'stock' && item.entity !== 'shifts') {
+                    partialSnake.updated_at = new Date().toISOString();
+                  }
+
+                  const { data: updatedRows, error: updateErr } = await supabase
+                    .from(table)
+                    .update(partialSnake)
+                    .match({ id: item.data.id })
+                    .select('id');
+
+                  if (!updateErr && updatedRows && updatedRows.length > 0) {
+                    await db.syncQueue.delete(item.id);
+                    syncedAny = true;
+                    continue;
+                  }
+                }
+
+                // 3. Fallback to UPSERT with full merged payload and guaranteed column defaults
+                const merged = localRecord ? { ...localRecord, ...item.data } : item.data;
+                const snakeData = sanitizeEntityData(item.entity, merged, false);
                 if (item.entity !== 'stock' && item.entity !== 'shifts') {
-                  partialSnake.updated_at = new Date().toISOString();
+                  snakeData.updated_at = new Date().toISOString();
                 }
-                
-                const { data: updatedRows, error: updateErr } = await supabase
-                  .from(table)
-                  .update(partialSnake)
-                  .match({ id: item.data.id })
-                  .select('id');
+                ensureEntityDefaults(item.entity, snakeData);
 
-                if (!updateErr && updatedRows && updatedRows.length > 0) {
-                  processedIds.push(item.id);
-                  continue;
+                const { error } = await supabase.from(table).upsert(snakeData);
+                if (error) {
+                  throw new Error(`Table "${table}" sync failed: ${error.message || error.details || 'Check schema'}`);
+                }
+              } else if (item.action === 'DELETE') {
+                const { error } = await supabase.from(table).delete().match({ id: item.data.id });
+                if (error) {
+                  throw new Error(`Table "${table}" delete failed: ${error.message || 'Check permissions'}`);
                 }
               }
 
-              // 3. Fallback to UPSERT with full merged payload and guaranteed column defaults
-              const merged = localRecord ? { ...localRecord, ...item.data } : item.data;
-              const snakeData = sanitizeEntityData(item.entity, merged);
-              if (item.entity !== 'stock' && item.entity !== 'shifts') {
-                snakeData.updated_at = new Date().toISOString();
-              }
-              ensureEntityDefaults(item.entity, snakeData);
-
-              const { error } = await supabase.from(table).upsert(snakeData);
-              if (error) {
-                console.error(`Supabase upsert error on table "${table}":`, error);
-                throw new Error(`Table "${table}" sync failed: ${error.message || error.details || 'Check if schema.sql was run in Supabase'}`);
-              }
-            } else if (item.action === 'DELETE') {
-              const { error } = await supabase.from(table).delete().match({ id: item.data.id });
-              if (error) {
-                console.error(`Supabase delete error on table "${table}":`, error);
-                throw new Error(`Table "${table}" delete failed: ${error.message || 'Check database permissions'}`);
-              }
+              await db.syncQueue.delete(item.id);
+              syncedAny = true;
+            } catch (itemErr: any) {
+              const msg = itemErr?.message || String(itemErr);
+              lastItemErr = msg;
+              console.error(`Sync error on item ${item.id} (${table}):`, msg);
             }
-            processedIds.push(item.id);
           }
 
-          if (processedIds.length > 0) {
-            await db.syncQueue.where('id').anyOf(processedIds).delete();
+          if (syncedAny) {
+            this.lastSyncTime = new Date().toLocaleTimeString();
           }
-
-          syncSucceeded = true;
-          this.cloudSyncError = null;
+          this.cloudSyncError = lastItemErr;
         } catch (supabaseErr: any) {
           const errMsg = supabaseErr?.message || String(supabaseErr);
           this.cloudSyncError = errMsg;
           console.warn('Supabase sync attempt error:', errMsg, supabaseErr);
         }
-      } else {
-        this.cloudSyncError = null;
-      }
-
-      if (syncSucceeded) {
-        this.lastSyncTime = new Date().toLocaleTimeString();
-      }
+      } while (this.resyncRequested);
     } catch (err) {
       console.error('Sync queue drainage error:', err);
     } finally {
       this.isSyncing = false;
+      this.resyncRequested = false;
       await this.emitStatus();
     }
   }
@@ -643,6 +696,46 @@ class SyncManager {
     }
     await this.pullFromCloud();
     return { success: !this.cloudSyncError, error: this.cloudSyncError || undefined };
+  }
+
+  // Clear all testing/existing orders & reset dining tables across local IndexedDB and Supabase
+  public async clearAllOrdersAndResetTables(): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 1. Wipe local orders & pending order/table sync mutations
+      await db.orders.clear();
+      await db.syncQueue.filter(m => m.entity === 'orders' || m.entity === 'tables').delete();
+
+      // 2. Reset local tables to available
+      const localTables = await db.diningTables.toArray();
+      if (localTables.length > 0) {
+        await db.diningTables.bulkPut(
+          localTables.map(t => ({ ...t, status: 'available' as const, currentOrderId: undefined }))
+        );
+      }
+
+      // 3. Wipe orders & reset tables in Supabase cloud
+      const supabase = await this.getClient();
+      if (supabase && this.isOnline) {
+        const { error: delErr } = await supabase.from('orders').delete().not('id', 'is', null);
+        if (delErr) {
+          return { success: false, error: `Supabase orders clear failed: ${delErr.message}` };
+        }
+        const { error: tblErr } = await supabase
+          .from('tables')
+          .update({ status: 'available', current_order_id: null, updated_at: new Date().toISOString() })
+          .not('id', 'is', null);
+        if (tblErr) {
+          return { success: false, error: `Supabase tables reset failed: ${tblErr.message}` };
+        }
+      }
+
+      this.lastSyncTime = new Date().toLocaleTimeString();
+      this.cloudSyncError = null;
+      await this.emitStatus();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to reset orders' };
+    }
   }
 
   // Clear stuck offline mutations from the local sync queue
